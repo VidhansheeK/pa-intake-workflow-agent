@@ -1,0 +1,26 @@
+{
+  "case_id": "PA-2026-0013",
+  "received_at": "2026-08-21T14:57:00",
+  "channel": "portal",
+  "member": {
+    "member_id": "M100023757",
+    "name": "Asha Patel",
+    "dob": "1963-04-17",
+    "plan": "UHC Options PPO"
+  },
+  "provider": {
+    "npi": "2606474685",
+    "name": "Dr. H. Thomas",
+    "specialty": "musculoskeletal",
+    "phone": "+1-555-258-4111"
+  },
+  "request": {
+    "procedure_cpt": "27447",
+    "procedure_description": "Total knee arthroplasty",
+    "diagnosis_icd10": "M17.11",
+    "diagnosis_description": "Unilateral primary osteoarthritis, right knee",
+    "urgency": "standard",
+    "expedited_justification": null
+  },
+  "clinical_notes": "58-year-old patient with chronic right knee pain worsening over 2 years. Completed 4 months of physical therapy and daily NSAID (naproxen) with no lasting relief. Weight-bearing X-ray shows severe medial joint space narrowing, bone-on-bone contact. BMI 31.2."
+}

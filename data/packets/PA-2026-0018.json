@@ -1,0 +1,26 @@
+{
+  "case_id": "PA-2026-0018",
+  "received_at": "2026-08-20T16:19:00",
+  "channel": "phone",
+  "member": {
+    "member_id": "M100000000",
+    "name": "Tara Patel",
+    "dob": "1951-12-09",
+    "plan": "UHC Choice Plus"
+  },
+  "provider": {
+    "npi": "1241182447",
+    "name": "Dr. D. Pillai",
+    "specialty": "pharmacy",
+    "phone": "+1-555-834-6617"
+  },
+  "request": {
+    "procedure_cpt": "J0135",
+    "procedure_description": "Adalimumab injection (specialty biologic)",
+    "diagnosis_icd10": "M05.79",
+    "diagnosis_description": "Rheumatoid arthritis with rheumatoid factor",
+    "urgency": "standard",
+    "expedited_justification": null
+  },
+  "clinical_notes": "Patient with progressive joint symptoms. Seropositive rheumatoid arthritis confirmed by rheumatology. Methotrexate 20mg weekly for 6 months with inadequate response."
+}

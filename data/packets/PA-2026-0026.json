@@ -1,0 +1,26 @@
+{
+  "case_id": "PA-2026-0026",
+  "received_at": "2026-08-18T13:25:00",
+  "channel": "phone",
+  "member": {
+    "member_id": "M100079190",
+    "name": "Rohan Verma",
+    "dob": "1974-02-18",
+    "plan": "UHC Navigate"
+  },
+  "provider": {
+    "npi": "4823662992",
+    "name": "Dr. E. Chatterjee",
+    "specialty": "musculoskeletal",
+    "phone": "+1-555-515-9977"
+  },
+  "request": {
+    "procedure_cpt": "64483",
+    "procedure_description": "Transforaminal epidural steroid injection, lumbar",
+    "diagnosis_icd10": "M54.16",
+    "diagnosis_description": "Radiculopathy, lumbar region",
+    "urgency": "standard",
+    "expedited_justification": null
+  },
+  "clinical_notes": ""
+}

@@ -1,0 +1,26 @@
+{
+  "case_id": "PA-2026-0007",
+  "received_at": "2026-08-17T12:15:00",
+  "channel": "portal",
+  "member": {
+    "member_id": "M100007919",
+    "name": "Kabir Rao",
+    "dob": "1997-02-22",
+    "plan": "UHC Options PPO"
+  },
+  "provider": {
+    "npi": "3911718229",
+    "name": "Dr. H. Thomas",
+    "specialty": "radiology",
+    "phone": "+1-555-662-3705"
+  },
+  "request": {
+    "procedure_cpt": "70553",
+    "procedure_description": "MRI brain with and without contrast",
+    "diagnosis_icd10": "R51.9",
+    "diagnosis_description": "Headache, unspecified",
+    "urgency": "expedited",
+    "expedited_justification": "Expedited review requested: delay poses imminent risk of serious deterioration in the member's condition per the attending physician."
+  },
+  "clinical_notes": "Patient presents with recurrent symptoms. Persistent headache with intermittent vision change and left arm numbness. Symptoms persisting for 6 weeks; prior CT unremarkable, further workup indicated."
+}

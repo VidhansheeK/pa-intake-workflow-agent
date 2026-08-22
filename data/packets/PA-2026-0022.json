@@ -1,0 +1,26 @@
+{
+  "case_id": "PA-2026-0022",
+  "received_at": "2026-08-18T08:11:00",
+  "channel": "phone",
+  "member": {
+    "member_id": "M100110866",
+    "name": "Arjun Kaur",
+    "dob": "1973-03-12",
+    "plan": "UHC Navigate"
+  },
+  "provider": {
+    "npi": "5634216076",
+    "name": "Dr. D. Pillai",
+    "specialty": "primary_care",
+    "phone": "+1-555-304-8541"
+  },
+  "request": {
+    "procedure_cpt": "99213",
+    "procedure_description": "Office/outpatient visit, established patient",
+    "diagnosis_icd10": "E11.9",
+    "diagnosis_description": "Type 2 diabetes mellitus without complications",
+    "urgency": "standard",
+    "expedited_justification": null
+  },
+  "clinical_notes": "Routine follow-up visit for stable chronic condition."
+}

@@ -1,0 +1,108 @@
+{
+  "27447": {
+    "description": "Total knee arthroplasty",
+    "pa_required": true,
+    "specialty_queue": "musculoskeletal",
+    "clinical_requirements": [
+      {
+        "id": "conservative_therapy",
+        "text": "Failed conservative therapy (physical therapy and/or NSAIDs) for at least 3 months",
+        "keywords": ["physical therapy", "nsaid", "ibuprofen", "naproxen", "conservative treatment"]
+      },
+      {
+        "id": "imaging_findings",
+        "text": "Imaging findings documenting joint degeneration",
+        "keywords": ["x-ray", "radiograph", "mri", "joint space narrowing", "bone-on-bone", "kellgren"]
+      },
+      {
+        "id": "bmi_documented",
+        "text": "Current BMI documented",
+        "keywords": ["bmi"]
+      }
+    ]
+  },
+  "64483": {
+    "description": "Transforaminal epidural steroid injection, lumbar",
+    "pa_required": true,
+    "specialty_queue": "musculoskeletal",
+    "clinical_requirements": [
+      {
+        "id": "radicular_pain",
+        "text": "Radicular pain documented",
+        "keywords": ["radicular", "radiating", "radiculopathy", "sciatica"]
+      },
+      {
+        "id": "conservative_therapy",
+        "text": "Failed conservative therapy for at least 6 weeks",
+        "keywords": ["physical therapy", "nsaid", "ibuprofen", "conservative treatment"]
+      },
+      {
+        "id": "imaging_correlation",
+        "text": "MRI or CT findings correlating with symptoms",
+        "keywords": ["mri", "ct", "disc herniation", "foraminal stenosis"]
+      }
+    ]
+  },
+  "70553": {
+    "description": "MRI brain with and without contrast",
+    "pa_required": true,
+    "specialty_queue": "radiology",
+    "clinical_requirements": [
+      {
+        "id": "neuro_symptoms",
+        "text": "Neurological symptoms or abnormal exam findings documented",
+        "keywords": ["headache", "seizure", "neurological", "vision change", "weakness", "numbness"]
+      },
+      {
+        "id": "duration_or_workup",
+        "text": "Symptom duration or prior workup documented",
+        "keywords": ["weeks", "months", "prior ct", "workup", "persisting"]
+      }
+    ]
+  },
+  "J0135": {
+    "description": "Adalimumab injection (specialty biologic)",
+    "pa_required": true,
+    "specialty_queue": "pharmacy",
+    "clinical_requirements": [
+      {
+        "id": "confirmed_diagnosis",
+        "text": "Confirmed autoimmune diagnosis (e.g. rheumatoid arthritis, psoriatic arthritis, IBD)",
+        "keywords": ["rheumatoid arthritis", "psoriatic", "crohn", "ulcerative colitis", "ankylosing"]
+      },
+      {
+        "id": "first_line_failure",
+        "text": "Trial and failure of first-line therapy (e.g. methotrexate)",
+        "keywords": ["methotrexate", "first-line", "dmard"]
+      },
+      {
+        "id": "tb_screening",
+        "text": "Negative TB screening documented",
+        "keywords": ["tb screen", "tuberculosis", "quantiferon", "ppd"]
+      }
+    ]
+  },
+  "93458": {
+    "description": "Cardiac catheterization, left heart, with coronary angiography",
+    "pa_required": true,
+    "specialty_queue": "cardiology",
+    "clinical_requirements": [
+      {
+        "id": "abnormal_testing",
+        "text": "Abnormal non-invasive testing or acute symptoms documented",
+        "keywords": ["stress test", "abnormal ekg", "angina", "chest pain", "ischemia"]
+      },
+      {
+        "id": "current_medications",
+        "text": "Current cardiac medications listed",
+        "keywords": ["aspirin", "statin", "metoprolol", "beta blocker", "medications"]
+      }
+    ]
+  },
+  "99213": {
+    "description": "Office/outpatient visit, established patient",
+    "pa_required": false,
+    "specialty_queue": null,
+    "clinical_requirements": []
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "case_id": "PA-2026-0008",
+  "received_at": "2026-08-19T17:27:00",
+  "channel": "portal",
+  "member": {
+    "member_id": null,
+    "name": "Asha Nair",
+    "dob": "1962-12-21",
+    "plan": "UHC Options PPO"
+  },
+  "provider": {
+    "npi": "8346578718",
+    "name": "Dr. D. Pillai",
+    "specialty": "musculoskeletal",
+    "phone": "+1-555-330-2049"
+  },
+  "request": {
+    "procedure_cpt": "27447",
+    "procedure_description": "Total knee arthroplasty",
+    "diagnosis_icd10": "M17.11",
+    "diagnosis_description": "Unilateral primary osteoarthritis, right knee",
+    "urgency": "standard",
+    "expedited_justification": null
+  },
+  "clinical_notes": "58-year-old patient with chronic right knee pain worsening over 2 years. Completed 4 months of physical therapy and daily NSAID (naproxen) with no lasting relief. Weight-bearing X-ray shows severe medial joint space narrowing, bone-on-bone contact. BMI 31.2."
+}

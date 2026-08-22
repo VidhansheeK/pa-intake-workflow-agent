@@ -1,0 +1,26 @@
+{
+  "case_id": "PA-2026-0009",
+  "received_at": "2026-08-15T17:35:00",
+  "channel": "portal",
+  "member": {
+    "member_id": null,
+    "name": "Priya Mehta",
+    "dob": "1964-08-19",
+    "plan": "UHC Navigate"
+  },
+  "provider": {
+    "npi": "9301031057",
+    "name": "Dr. B. Kulkarni",
+    "specialty": "pharmacy",
+    "phone": "+1-555-626-4899"
+  },
+  "request": {
+    "procedure_cpt": "J0135",
+    "procedure_description": "Adalimumab injection (specialty biologic)",
+    "diagnosis_icd10": "M05.79",
+    "diagnosis_description": "Rheumatoid arthritis with rheumatoid factor",
+    "urgency": "standard",
+    "expedited_justification": null
+  },
+  "clinical_notes": "Patient with progressive joint symptoms. Seropositive rheumatoid arthritis confirmed by rheumatology. Methotrexate 20mg weekly for 6 months with inadequate response. Quantiferon TB screen negative this month."
+}

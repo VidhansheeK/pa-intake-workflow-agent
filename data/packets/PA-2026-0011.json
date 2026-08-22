@@ -1,0 +1,26 @@
+{
+  "case_id": "PA-2026-0011",
+  "received_at": "2026-08-18T14:29:00",
+  "channel": "phone",
+  "member": {
+    "member_id": "M999000011",
+    "name": "Priya Mehta",
+    "dob": "1964-08-19",
+    "plan": "UHC Navigate"
+  },
+  "provider": {
+    "npi": "0106513332",
+    "name": "Dr. H. Thomas",
+    "specialty": "cardiology",
+    "phone": "+1-555-243-7912"
+  },
+  "request": {
+    "procedure_cpt": "93458",
+    "procedure_description": "Cardiac catheterization, left heart, with coronary angiography",
+    "diagnosis_icd10": "I25.10",
+    "diagnosis_description": "Atherosclerotic heart disease",
+    "urgency": "standard",
+    "expedited_justification": null
+  },
+  "clinical_notes": "Patient followed by cardiology. Exertional chest pain; nuclear stress test shows reversible ischemia. Current medications: aspirin 81mg, atorvastatin (statin), metoprolol."
+}

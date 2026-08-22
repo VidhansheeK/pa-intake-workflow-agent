@@ -1,0 +1,26 @@
+{
+  "case_id": "PA-2026-0003",
+  "received_at": "2026-08-17T10:15:00",
+  "channel": "phone",
+  "member": {
+    "member_id": "M100015838",
+    "name": "Zoya Nair",
+    "dob": "1955-10-14",
+    "plan": "UHC Choice Plus"
+  },
+  "provider": {
+    "npi": "8849696538",
+    "name": "Dr. C. D'Souza",
+    "specialty": "radiology",
+    "phone": "+1-555-621-9085"
+  },
+  "request": {
+    "procedure_cpt": "70553",
+    "procedure_description": "MRI brain with and without contrast",
+    "diagnosis_icd10": "R51.9",
+    "diagnosis_description": "Headache, unspecified",
+    "urgency": "standard",
+    "expedited_justification": null
+  },
+  "clinical_notes": "Patient presents with recurrent symptoms. Persistent headache with intermittent vision change and left arm numbness. Symptoms persisting for 6 weeks; prior CT unremarkable, further workup indicated."
+}

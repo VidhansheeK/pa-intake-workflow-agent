@@ -1,0 +1,26 @@
+{
+  "case_id": "PA-2026-0002",
+  "received_at": "2026-08-21T08:14:00",
+  "channel": "portal",
+  "member": {
+    "member_id": "M100102947",
+    "name": "Rohan Gupta",
+    "dob": "1964-02-13",
+    "plan": "UHC Navigate"
+  },
+  "provider": {
+    "npi": "5641395376",
+    "name": "Dr. G. Saxena",
+    "specialty": "musculoskeletal",
+    "phone": "+1-555-758-8517"
+  },
+  "request": {
+    "procedure_cpt": "64483",
+    "procedure_description": "Transforaminal epidural steroid injection, lumbar",
+    "diagnosis_icd10": "M54.16",
+    "diagnosis_description": "Radiculopathy, lumbar region",
+    "urgency": "standard",
+    "expedited_justification": null
+  },
+  "clinical_notes": "Patient reports low back pain for 5 months. Pain is radicular, radiating down the left leg to the foot. 8 weeks of physical therapy and ibuprofen without improvement. MRI lumbar spine shows L4-L5 disc herniation with foraminal stenosis on the left."
+}

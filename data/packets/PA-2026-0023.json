@@ -1,0 +1,26 @@
+{
+  "case_id": "PA-2026-0023",
+  "received_at": "2026-08-17T11:14:00",
+  "channel": "portal",
+  "member": {
+    "member_id": "M100039595",
+    "name": "Priya Mehta",
+    "dob": "1964-08-19",
+    "plan": "UHC Navigate"
+  },
+  "provider": {
+    "npi": "3654145861",
+    "name": "Dr. F. Bhat",
+    "specialty": "primary_care",
+    "phone": "+1-555-128-2889"
+  },
+  "request": {
+    "procedure_cpt": "99213",
+    "procedure_description": "Office/outpatient visit, established patient",
+    "diagnosis_icd10": "E11.9",
+    "diagnosis_description": "Type 2 diabetes mellitus without complications",
+    "urgency": "standard",
+    "expedited_justification": null
+  },
+  "clinical_notes": "Routine follow-up visit for stable chronic condition."
+}

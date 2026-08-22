@@ -1,0 +1,26 @@
+{
+  "case_id": "PA-2026-0020",
+  "received_at": "2026-08-20T14:35:00",
+  "channel": "portal",
+  "member": {
+    "member_id": "M100063352",
+    "name": "Rohan Patel",
+    "dob": "1974-02-12",
+    "plan": "UHC Navigate"
+  },
+  "provider": {
+    "npi": "1128059825",
+    "name": "Dr. G. Saxena",
+    "specialty": "musculoskeletal",
+    "phone": "+1-555-230-1685"
+  },
+  "request": {
+    "procedure_cpt": "27447",
+    "procedure_description": "Total knee arthroplasty",
+    "diagnosis_icd10": "M17.11",
+    "diagnosis_description": "Unilateral primary osteoarthritis, right knee",
+    "urgency": "expedited",
+    "expedited_justification": null
+  },
+  "clinical_notes": "58-year-old patient with chronic right knee pain worsening over 2 years. Completed 4 months of physical therapy and daily NSAID (naproxen) with no lasting relief. Weight-bearing X-ray shows severe medial joint space narrowing, bone-on-bone contact. BMI 31.2."
+}

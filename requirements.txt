@@ -1,0 +1,7 @@
+# Core pipeline runs on the Python standard library alone (offline mode).
+# LLM mode needs exactly one of the two SDKs; the app needs streamlit.
+anthropic>=0.40
+streamlit>=1.38
+pytest>=8.0
+# optional alternative provider:
+# openai>=1.40
