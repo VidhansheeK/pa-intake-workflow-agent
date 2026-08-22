@@ -17,8 +17,19 @@ Env vars:
 import json
 import os
 import urllib.request
+from pathlib import Path
 
 DEFAULT_MODELS = {"anthropic": "claude-opus-5", "gemini": "gemini-2.5-flash"}
+
+# Load KEY=VALUE lines from the project's .env (gitignored) so keys work in the
+# CLI, evals, and Streamlit without exporting. Real env vars take precedence.
+_env_file = Path(__file__).parent.parent / ".env"
+if _env_file.exists():
+    for _line in _env_file.read_text().splitlines():
+        _line = _line.strip()
+        if _line and not _line.startswith("#") and "=" in _line:
+            _key, _, _value = _line.partition("=")
+            os.environ.setdefault(_key.strip(), _value.strip().strip('"').strip("'"))
 
 
 def provider() -> str:

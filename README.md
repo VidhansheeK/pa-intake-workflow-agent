@@ -50,14 +50,14 @@ pytest tests/
 
 ### LLM mode (optional)
 
-Two providers are supported behind the same interface — set whichever key you have:
+Two providers are supported behind the same interface. Put your key in a `.env`
+file at the project root (gitignored — see `.env.example`):
 
 ```bash
-# Option A: Google Gemini — FREE tier key from https://aistudio.google.com/apikey
-export GEMINI_API_KEY=AIza...         # default model: gemini-2.5-flash
-
-# Option B: Anthropic Claude (paid)
-export ANTHROPIC_API_KEY=sk-ant-...   # default model: claude-opus-5
+cp .env.example .env
+# edit .env and paste ONE key:
+#   GEMINI_API_KEY=AIza...     FREE tier key from https://aistudio.google.com/apikey
+#   ANTHROPIC_API_KEY=sk-...   paid alternative (default model claude-opus-5)
 
 python -m src.pipeline PA-2026-0018   # clinical-notes check + letter drafting via LLM
 python evals/run_evals.py             # score LLM mode against the golden set
