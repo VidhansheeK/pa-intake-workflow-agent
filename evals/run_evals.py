@@ -60,6 +60,11 @@ def main() -> None:
     f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
 
     print(f"\n=== Eval results ({n} cases, mode: {llm.provider()}) ===")
+    if llm.provider() != "offline":
+        total = llm.CALLS["llm"] + llm.CALLS["fallback"]
+        purity = llm.CALLS["llm"] / total if total else 0
+        print(f"LLM call integrity:      {llm.CALLS['llm']}/{total} served by LLM "
+              f"({purity:.0%} — below 100% means offline fallbacks diluted this run)")
     print(f"Missing-info detection:  precision {precision:.2%}  recall {recall:.2%}  F1 {f1:.2%}")
     print(f"Routing accuracy:        {route_hits}/{n} ({route_hits / n:.2%})")
     if letters_checked:
@@ -72,7 +77,7 @@ def main() -> None:
         print("\nNo failures.")
 
     (ROOT / "evals" / "results.json").write_text(json.dumps({
-        "mode": llm.provider(), "cases": n,
+        "mode": llm.provider(), "cases": n, "llm_calls": dict(llm.CALLS),
         "finding_precision": precision, "finding_recall": recall, "finding_f1": f1,
         "routing_accuracy": route_hits / n,
         "letter_rubric_pass_rate": (letters_passed / letters_checked) if letters_checked else None,

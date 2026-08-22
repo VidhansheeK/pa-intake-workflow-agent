@@ -87,9 +87,15 @@ fallback. Override the model with `PA_MODEL`.
 | `BUILD_LOG.md` | Running log of problems, rejected strategies, decisions |
 | `AI_USAGE.md` | How AI was used to build this, and where humans stayed in the loop |
 
-## Current eval results (offline mode, 26 cases)
+## Current eval results (26 cases)
 
-Missing-info detection precision/recall/F1: **100% / 100% / 100%** · Routing
-accuracy: **26/26** · Follow-up rubric pass rate: **15/15**. Offline mode is a
-*consistency* check of the deterministic path against by-construction labels;
-LLM-mode results and their failure modes are discussed in `DESIGN.md`.
+| Mode | Missing-info P / R / F1 | Routing | Letter rubric | LLM call integrity |
+|---|---|---|---|---|
+| offline (deterministic) | 100% / 100% / 100% | 26/26 | 15/15 | n/a |
+| LLM (`gemini-3.5-flash-lite`) | 100% / 100% / 100% | 26/26 | 15/15 | 38/38 served by LLM |
+
+Offline mode is a *consistency* check of the deterministic path against
+by-construction labels. The **LLM call integrity** column exists because an
+earlier "LLM mode" run was silently diluted by offline fallbacks under rate
+limiting — the eval now proves which path served every call (see
+`BUILD_LOG.md`). Failure modes and limitations are discussed in `DESIGN.md`.

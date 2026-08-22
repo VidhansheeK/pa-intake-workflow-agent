@@ -76,3 +76,42 @@ Provider ladder is now ANTHROPIC_API_KEY → GEMINI_API_KEY → offline.
 Alternatives considered: Groq free tier (viable, but one free provider is
 enough), Ollama local models (fully free but adds a multi-GB download and
 weaker structured-output reliability for a demo).
+
+**Problem: first real LLM eval run hit Gemini free-tier rate limits (429,
+~10 requests/min).** The graceful-degradation design worked *too* well: every
+429 silently fell back to the offline path, so the "LLM mode" eval was
+actually a mixed run — results looked perfect but weren't a clean
+measurement. Lesson: silent fallbacks can corrupt measurements; evals must
+know which path actually served each call. Fix: on 429 specifically, parse
+Google's `retryDelay` from the error body and wait it out (up to 3 retries)
+instead of falling back — eval runs now stay fully in LLM mode, they just
+take a few minutes. Non-429 failures still degrade to offline. Free-tier
+budgeting: ~40 calls per full eval run against a 250/day quota → at most a
+few full runs per day; `PA_MODEL=gemini-2.5-flash-lite` (1,000/day) is the
+escape hatch.
+
+**First single-case LLM result (PA-2026-0018, Gemini):** correctly flagged
+the missing TB screening from free-text notes — the semantic judgment the
+offline keyword heuristic can't make — and drafted a rubric-passing letter.
+
+**Problem: model-ID roulette on the Gemini free tier.** Switching to
+`gemini-2.5-flash-lite` for its bigger quota produced 404s on every call —
+even though the ListModels endpoint returns that exact ID for this key. The
+new **LLM call integrity metric caught it instantly** (0/38 served by LLM;
+without the metric the run would have looked like a perfect LLM result while
+being 100% offline fallbacks — validating the lesson from the 429 incident).
+Diagnosis: probed each candidate through the real `llm.complete_json()` code
+path; `gemini-3.5-flash-lite` works (instant structured response),
+`gemini-2.5-flash-lite` 404s despite being listed, `gemini-2.5-flash` was
+quota-exhausted from earlier runs. Fix: pinned the default to
+`gemini-3.5-flash-lite`. Lesson worth keeping: a provider's model *listing*
+is not proof the model is *servable* — always probe through the production
+code path before an eval run.
+
+**Final LLM-mode eval (gemini-3.5-flash-lite): 100%/100% detection, 26/26
+routing, 15/15 letter rubric, 38/38 call integrity.** Fully LLM-served run
+(only 3 brief rate-limit waits). The LLM path matches the golden labels
+exactly on this dataset — expected, since the scenarios are unambiguous by
+construction; the value of LLM mode shows in *what* it catches (semantic
+gaps like the undocumented TB screening) rather than in beating the offline
+score. Harder ambiguous-notes cases are the natural next eval extension.

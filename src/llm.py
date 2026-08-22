@@ -16,10 +16,18 @@ Env vars:
 """
 import json
 import os
+import re
+import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
-DEFAULT_MODELS = {"anthropic": "claude-opus-5", "gemini": "gemini-2.5-flash"}
+DEFAULT_MODELS = {"anthropic": "claude-opus-5", "gemini": "gemini-3.5-flash-lite"}
+
+# Measurement integrity: count calls served vs degraded, so evals can state
+# whether an "LLM mode" run was actually all-LLM (see BUILD_LOG: silent
+# fallbacks corrupted the first eval run).
+CALLS = {"llm": 0, "fallback": 0}
 
 # Load KEY=VALUE lines from the project's .env (gitignored) so keys work in the
 # CLI, evals, and Streamlit without exporting. Real env vars take precedence.
@@ -95,8 +103,21 @@ def _gemini_json(system: str, prompt: str, schema: dict) -> dict | None:
         url, data=json.dumps(body).encode(),
         headers={"Content-Type": "application/json"}, method="POST",
     )
-    with urllib.request.urlopen(request, timeout=90) as response:
-        payload = json.loads(response.read())
+    # Free tier is ~10 requests/min: on 429, wait out Google's retryDelay
+    # instead of falling back, so eval runs stay fully in LLM mode.
+    for attempt in range(4):
+        try:
+            with urllib.request.urlopen(request, timeout=90) as response:
+                payload = json.loads(response.read())
+            break
+        except urllib.error.HTTPError as e:
+            if e.code != 429 or attempt == 3:
+                raise
+            error_body = e.read().decode(errors="replace")
+            match = re.search(r'"retryDelay":\s*"(\d+)', error_body)
+            delay = int(match.group(1)) + 1 if match else 30
+            print(f"[llm:gemini] rate limited; retrying in {delay}s")
+            time.sleep(min(delay, 65))
     candidates = payload.get("candidates") or []
     if not candidates:  # safety-blocked or empty; use deterministic fallback
         return None
@@ -110,9 +131,11 @@ def complete_json(system: str, prompt: str, schema: dict) -> dict | None:
     if prov == "offline":
         return None
     try:
-        if prov == "anthropic":
-            return _anthropic_json(system, prompt, schema)
-        return _gemini_json(system, prompt, schema)
+        result = _anthropic_json(system, prompt, schema) if prov == "anthropic" \
+            else _gemini_json(system, prompt, schema)
+        CALLS["llm" if result is not None else "fallback"] += 1
+        return result
     except Exception as e:  # any API failure degrades gracefully to offline
+        CALLS["fallback"] += 1
         print(f"[llm:{prov}] falling back to offline path: {type(e).__name__}: {e}")
         return None
