@@ -31,7 +31,7 @@ def process(packet: dict, policies: dict | None = None, members: dict | None = N
     decision = router.route(packet, findings, policies)
     result = {
         "case_id": packet["case_id"],
-        "mode": llm.mode(),
+        "mode": llm.provider(),
         "findings": findings,
         "route": decision,
         "followup": None,
@@ -40,7 +40,7 @@ def process(packet: dict, policies: dict | None = None, members: dict | None = N
     if decision["queue"] == "provider_outreach":
         result["followup"] = followups.draft(packet, findings)
 
-    audit.log(packet["case_id"], "pipeline_proposal", actor=f"pipeline({llm.mode()})",
+    audit.log(packet["case_id"], "pipeline_proposal", actor=f"pipeline({llm.provider()})",
               details={"findings": [f["code"] for f in findings], "route": decision["queue"]})
     return result
 

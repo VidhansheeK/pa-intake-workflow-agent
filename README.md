@@ -50,14 +50,22 @@ pytest tests/
 
 ### LLM mode (optional)
 
+Two providers are supported behind the same interface — set whichever key you have:
+
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...   # enables Claude for clinical-notes checks
-python -m src.pipeline PA-2026-0018   # and follow-up letter drafting
+# Option A: Google Gemini — FREE tier key from https://aistudio.google.com/apikey
+export GEMINI_API_KEY=AIza...         # default model: gemini-2.5-flash
+
+# Option B: Anthropic Claude (paid)
+export ANTHROPIC_API_KEY=sk-ant-...   # default model: claude-opus-5
+
+python -m src.pipeline PA-2026-0018   # clinical-notes check + letter drafting via LLM
+python evals/run_evals.py             # score LLM mode against the golden set
 ```
 
-Without a key (or with `PA_MODE=offline`) every LLM step degrades gracefully to
-its deterministic fallback. Model defaults to `claude-opus-5`; override with
-`PA_MODEL`.
+If both keys are set, Anthropic wins. Without any key (or with
+`PA_MODE=offline`) every LLM step degrades gracefully to its deterministic
+fallback. Override the model with `PA_MODEL`.
 
 ## Repository map
 

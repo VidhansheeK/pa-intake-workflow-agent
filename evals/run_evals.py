@@ -59,7 +59,7 @@ def main() -> None:
     recall = tp / (tp + fn) if tp + fn else 1.0
     f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
 
-    print(f"\n=== Eval results ({n} cases, mode: {llm.mode()}) ===")
+    print(f"\n=== Eval results ({n} cases, mode: {llm.provider()}) ===")
     print(f"Missing-info detection:  precision {precision:.2%}  recall {recall:.2%}  F1 {f1:.2%}")
     print(f"Routing accuracy:        {route_hits}/{n} ({route_hits / n:.2%})")
     if letters_checked:
@@ -72,7 +72,7 @@ def main() -> None:
         print("\nNo failures.")
 
     (ROOT / "evals" / "results.json").write_text(json.dumps({
-        "mode": llm.mode(), "cases": n,
+        "mode": llm.provider(), "cases": n,
         "finding_precision": precision, "finding_recall": recall, "finding_f1": f1,
         "routing_accuracy": route_hits / n,
         "letter_rubric_pass_rate": (letters_passed / letters_checked) if letters_checked else None,

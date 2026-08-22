@@ -39,7 +39,7 @@ def run_pipeline(case_id: str) -> dict:
 
 
 st.title("Prior Authorization Intake — Review Queue")
-st.caption(f"Pipeline mode: **{llm.mode()}** · All data is synthetic · "
+st.caption(f"Pipeline mode: **{llm.provider()}** · All data is synthetic · "
            "Nothing is finalized without your approval")
 
 decisions = load_decisions()

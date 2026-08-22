@@ -65,3 +65,14 @@ DESIGN §5.
 
 **Verified:** 17/17 pytest, evals green, CLI smoke run on all 26 packets,
 Streamlit app boots headless (HTTP 200).
+
+**Decision: added Google Gemini as a free LLM provider.** Anthropic has no
+free API tier; Gemini's AI Studio key is free (daily quota easily covers the
+26-case evals + demo). Implemented via the plain REST API with stdlib
+`urllib` — zero new dependencies — behind the same `complete_json()`
+interface. Gotcha found while implementing: Gemini's `responseSchema` rejects
+`additionalProperties`, so schemas are stripped recursively before sending.
+Provider ladder is now ANTHROPIC_API_KEY → GEMINI_API_KEY → offline.
+Alternatives considered: Groq free tier (viable, but one free provider is
+enough), Ollama local models (fully free but adds a multi-GB download and
+weaker structured-output reliability for a demo).

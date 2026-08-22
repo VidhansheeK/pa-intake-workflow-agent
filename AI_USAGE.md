@@ -7,8 +7,8 @@ documented. Two distinct layers:
 
 | Step | Model use | Guardrail |
 |---|---|---|
-| Clinical-notes completeness (`src/completeness.py`) | Claude (`claude-opus-5`) judges whether free-text notes satisfy the CPT policy's required elements | Structured outputs (JSON schema); unknown requirement IDs filtered in code; keyword-heuristic fallback offline |
-| Follow-up letter drafting (`src/followups.py`) | Claude drafts a consolidated provider letter tagged per finding | Rubric verified **in code** (every finding covered, nothing invented, case ID present); one retry with feedback; template fallback; then the human gate |
+| Clinical-notes completeness (`src/completeness.py`) | The active LLM (Claude `claude-opus-5` or Gemini `gemini-2.5-flash` free tier) judges whether free-text notes satisfy the CPT policy's required elements | Structured outputs (JSON schema); unknown requirement IDs filtered in code; keyword-heuristic fallback offline |
+| Follow-up letter drafting (`src/followups.py`) | The active LLM drafts a consolidated provider letter tagged per finding | Rubric verified **in code** (every finding covered, nothing invented, case ID present); one retry with feedback; template fallback; then the human gate |
 | Everything else (field checks, NPI checksum, eligibility, routing) | **No model** — deterministic Python | Unit-tested decision table |
 
 Human in the loop: a named reviewer approves/edits/rejects every proposal in
