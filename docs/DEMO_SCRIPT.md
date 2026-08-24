@@ -44,16 +44,23 @@ python -m src.pipeline PA-2026-0018
 > requirements. Route: provider outreach, one consolidated letter, one
 > round-trip instead of several."
 
-## 2:45–3:45 — Human gate (browser: streamlit run app/review_app.py)
+## 2:45–3:45 — Human gate + live intake (browser: streamlit run app/review_app.py)
 
-> "Nothing leaves the system without this screen. The reviewer sees findings,
-> route, reason, and the editable letter. Approve, edit, or reject — every
-> decision lands in an append-only audit log with actor and timestamp. That
-> audit log is also the improvement loop: reviewer edits are labeled signal
-> for where drafting falls short."
+Before recording, have `python -m src.watcher` running in a second terminal.
 
-Click through one approve (edit one sentence of the letter first, to show the
-edit path), show `audit_log.jsonl` in the terminal.
+> "Nothing leaves the system without this screen. The reviewer sees the
+> pipeline trace for the case, each finding badged by what produced it — a
+> rule or the AI — the proposed route, and the editable letter. Approve,
+> edit, or reject — every decision lands in an append-only audit log."
+
+Do live: `cp data/faxes/FAX-0001.txt data/inbox/` → refresh the queue → the
+fax case appears ("that's event-driven intake: a fax arrived, was extracted
+to structured fields, checked, and queued — untouched by human hands").
+Approve one case with a small letter edit (the diff view appears). Flip to
+the **Dashboard tab**: queue stats, and the **cost panel** — "every model
+call is metered; at the budget cap the agent degrades to offline rules
+instead of overspending — a runaway loop physically can't burn money."
+Show the **Audit Trail tab** briefly.
 
 ## 3:45–4:30 — Evidence (terminal)
 

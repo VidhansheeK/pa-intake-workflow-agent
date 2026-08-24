@@ -163,5 +163,26 @@
       "clinical_notes_missing"
     ],
     "expected_route": "provider_outreach"
+  },
+  "PA-2026-0027": {
+    "scenario": "duplicate_request",
+    "expected_findings": [
+      "possible_duplicate"
+    ],
+    "expected_route": "duplicate_review"
+  },
+  "PA-2026-0028": {
+    "scenario": "fax_complete",
+    "expected_findings": [],
+    "expected_route": "clinical_review::radiology",
+    "fax": "FAX-0001.txt"
+  },
+  "PA-2026-0029": {
+    "scenario": "fax_missing_diagnosis",
+    "expected_findings": [
+      "diagnosis_missing"
+    ],
+    "expected_route": "provider_outreach",
+    "fax": "FAX-0002.txt"
   }
 }

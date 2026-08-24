@@ -108,8 +108,53 @@ quota-exhausted from earlier runs. Fix: pinned the default to
 is not proof the model is *servable* — always probe through the production
 code path before an eval run.
 
-**Final LLM-mode eval (gemini-3.5-flash-lite): 100%/100% detection, 26/26
-routing, 15/15 letter rubric, 38/38 call integrity.** Fully LLM-served run
+## 2026-08-25 — Session 3 (scope expansion: user-approved full feature set)
+
+**Decision: promote three "future work" items into the build** — fax
+extraction, duplicate detection, event-driven intake — plus all seven UI
+upgrades and a new cost-control layer. Risk accepted knowingly (deadline
+Aug 28); mitigated by building each lean and keeping evals green after every
+piece.
+
+**Cost controls (user's idea — good FDE instinct):** every LLM call is
+metered (tokens + list-price cost) to an append-only ledger; a budget guard
+(`PA_BUDGET_USD`, default $1) plus a runaway-loop call cap
+(`PA_MAX_LLM_CALLS`) hard-stop LLM usage — the agent degrades to offline
+rules instead of overspending. Free-tier calls bill $0 in reality but are
+metered at list price so the figure sizes production honestly. ponytail:
+per-process accounting; production would use a shared metering service.
+
+**Extraction layer:** fax text → packet via LLM structured extraction
+("return null for missing fields — never invent") with a labeled-line regex
+parser as the offline fallback. A field the extractor can't find becomes
+None and the *existing* completeness checker flags it — extraction never
+guesses, detection stays in one place.
+
+**Duplicate detection:** deterministic — same member + same CPT within 14
+days, only the *later* request flagged, routed to a new duplicate_review
+queue that outranks outreach (don't chase a provider about a case that may
+already exist). Generator problem found while building: random member picks
+could create *accidental* (member, CPT) collisions that would poison the
+golden labels — fixed with a unique-pair picker; the one intended duplicate
+is constructed explicitly.
+
+**Event-driven intake (Loop 3, demo scale):** a watcher polls data/inbox/
+every 2s; drop a fax or packet file and it lands in the review queue with an
+audit entry. ponytail: polling stands in for the production message-bus
+subscription.
+
+**UI: all seven upgrades from UNDERSTANDING.md Part 5** — pipeline-trace
+stepper, rule/AI/heuristic badges per finding, dashboard (queue stats + cost
+panel with budget progress), packet field checks with red/green highlights,
+audit-trail tab, evals tab, and a letter diff when the reviewer edits.
+
+**Verified after expansion:** 26/26 tests, offline evals 29/29 green
+(fax cases exercised end-to-end through extraction), duplicate case routes
+to duplicate_review, watcher ingests a dropped fax (audit entry + proposal),
+Streamlit boots HTTP 200.
+
+**Final LLM-mode eval on the original 26 (gemini-3.5-flash-lite): 100%/100%
+detection, 26/26 routing, 15/15 letter rubric, 38/38 call integrity.** Fully LLM-served run
 (only 3 brief rate-limit waits). The LLM path matches the golden labels
 exactly on this dataset — expected, since the scenarios are unambiguous by
 construction; the value of LLM mode shows in *what* it catches (semantic

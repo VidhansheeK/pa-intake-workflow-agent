@@ -142,9 +142,38 @@ def base_packet(case_num: int, cpt: str, member: dict, urgency="standard") -> di
     }
 
 
+def packet_to_fax(packet: dict) -> str:
+    """Render a packet as a fax-style text transmission (the unstructured
+    entry point real intake deals with)."""
+    r, m, p = packet["request"], packet["member"], packet["provider"]
+    lines = [
+        "UHC PRIOR AUTHORIZATION REQUEST — FAX TRANSMISSION",
+        f"Reference: {packet['case_id']}",
+        f"Received: {packet['received_at']}",
+        f"Member ID: {m['member_id']}",
+        f"Member Name: {m['name']}",
+        f"Member DOB: {m['dob']}",
+        f"Plan: {m['plan']}",
+        f"Provider NPI: {p['npi']}",
+        f"Provider Name: {p['name']}",
+        f"Provider Phone: {p['phone']}",
+        f"Procedure (CPT): {r['procedure_cpt']} - {r['procedure_description']}",
+    ]
+    if r.get("diagnosis_icd10"):
+        lines.append(f"Diagnosis (ICD-10): {r['diagnosis_icd10']} - {r['diagnosis_description']}")
+    lines += [f"Urgency: {r['urgency']}", "", "CLINICAL NOTES:", packet["clinical_notes"]]
+    return "\n".join(lines) + "\n"
+
+
+FAXES_DIR = DATA_DIR / "faxes"
+
+
 def main():
     PACKETS_DIR.mkdir(exist_ok=True)
+    FAXES_DIR.mkdir(exist_ok=True)
     for old in PACKETS_DIR.glob("PA-*.json"):
+        old.unlink()
+    for old in FAXES_DIR.glob("FAX-*.txt"):
         old.unlink()
 
     members = make_members()
@@ -152,6 +181,18 @@ def main():
 
     packets, labels = [], {}
     num = 0
+
+    # duplicate detection needs (member, cpt) pairs to be unique unless a
+    # scenario intends otherwise — pick members without reusing a pair
+    used_pairs = set()
+
+    def pick_member(cpt):
+        for _ in range(100):
+            m = rng.choice(members)
+            if (m["member_id"], cpt) not in used_pairs:
+                used_pairs.add((m["member_id"], cpt))
+                return m
+        raise RuntimeError(f"no unused member for {cpt}")
 
     def add(packet, scenario, findings, route):
         nonlocal num
@@ -173,85 +214,113 @@ def main():
 
     # 1. Complete, standard urgency — one per PA-required CPT (5)
     for cpt in ["27447", "64483", "70553", "J0135", "93458"]:
-        p = base_packet(nxt(), cpt, rng.choice(members))
+        p = base_packet(nxt(), cpt, pick_member(cpt))
         add(p, "complete_standard", [], queue(cpt))
 
     # 2. Complete, expedited with justification (2)
     for cpt in ["93458", "70553"]:
-        p = base_packet(nxt(), cpt, rng.choice(members), urgency="expedited")
+        p = base_packet(nxt(), cpt, pick_member(cpt), urgency="expedited")
         add(p, "complete_expedited", [], queue(cpt, "expedited_clinical_review"))
 
     # 3. Missing member ID (2)
     for cpt in ["27447", "J0135"]:
-        p = base_packet(nxt(), cpt, rng.choice(members))
+        p = base_packet(nxt(), cpt, pick_member(cpt))
         p["member"]["member_id"] = None
         add(p, "missing_member_id", ["member_id_missing"], "provider_outreach")
 
     # 4. Member ID present but not found in eligibility (2)
     for cpt in ["64483", "93458"]:
-        p = base_packet(nxt(), cpt, rng.choice(members))
+        p = base_packet(nxt(), cpt, pick_member(cpt))
         p["member"]["member_id"] = f"M{999000000 + num}"
         add(p, "member_not_found", ["member_not_found"], "eligibility_review")
 
     # 5. Invalid NPI (2)
-    p = base_packet(nxt(), "70553", rng.choice(members))
+    p = base_packet(nxt(), "70553", pick_member("70553"))
     p["provider"]["npi"] = "12345"  # wrong length
     add(p, "invalid_npi", ["npi_invalid"], "provider_outreach")
-    p = base_packet(nxt(), "27447", rng.choice(members))
+    p = base_packet(nxt(), "27447", pick_member("27447"))
     bad = p["provider"]["npi"]
     p["provider"]["npi"] = bad[:9] + str((int(bad[9]) + 1) % 10)  # break check digit
     add(p, "invalid_npi", ["npi_invalid"], "provider_outreach")
 
     # 6. Missing diagnosis (2)
     for cpt in ["64483", "J0135"]:
-        p = base_packet(nxt(), cpt, rng.choice(members))
+        p = base_packet(nxt(), cpt, pick_member(cpt))
         p["request"]["diagnosis_icd10"] = None
         p["request"]["diagnosis_description"] = None
         add(p, "missing_diagnosis", ["diagnosis_missing"], "provider_outreach")
 
     # 7. Malformed ICD-10 (1)
-    p = base_packet(nxt(), "93458", rng.choice(members))
+    p = base_packet(nxt(), "93458", pick_member("93458"))
     p["request"]["diagnosis_icd10"] = "25.10"  # dropped leading letter
     add(p, "invalid_icd10", ["diagnosis_invalid"], "provider_outreach")
 
     # 8. Clinical notes missing a required element (3)
     for cpt, omit in [("27447", "conservative_therapy"), ("J0135", "tb_screening"),
                       ("64483", "imaging_correlation")]:
-        p = base_packet(nxt(), cpt, rng.choice(members))
+        p = base_packet(nxt(), cpt, pick_member(cpt))
         p["clinical_notes"] = make_notes(cpt, omit=omit)
         add(p, f"notes_missing_{omit}", ["clinical_notes_insufficient"], "provider_outreach")
 
     # 9. Expedited without justification (2)
     for cpt in ["27447", "93458"]:
-        p = base_packet(nxt(), cpt, rng.choice(members), urgency="expedited")
+        p = base_packet(nxt(), cpt, pick_member(cpt), urgency="expedited")
         p["request"]["expedited_justification"] = None
         add(p, "expedited_no_justification", ["expedited_justification_missing"], "provider_outreach")
 
     # 10. CPT that does not require PA (2)
     for _ in range(2):
-        p = base_packet(nxt(), "99213", rng.choice(members))
+        p = base_packet(nxt(), "99213", pick_member("99213"))
         add(p, "no_pa_required", [], "no_auth_required")
 
     # 11. Missing DOB (1)
-    p = base_packet(nxt(), "70553", rng.choice(members))
+    p = base_packet(nxt(), "70553", pick_member("70553"))
     p["member"]["dob"] = None
     add(p, "missing_dob", ["member_dob_missing"], "provider_outreach")
 
     # 12. Multiple issues at once (1)
-    p = base_packet(nxt(), "27447", rng.choice(members))
+    p = base_packet(nxt(), "27447", pick_member("27447"))
     p["member"]["member_id"] = None
     p["provider"]["npi"] = "abc"
     add(p, "multi_issue", ["member_id_missing", "npi_invalid"], "provider_outreach")
 
     # 13. Empty clinical notes entirely (1)
-    p = base_packet(nxt(), "64483", rng.choice(members))
+    p = base_packet(nxt(), "64483", pick_member("64483"))
     p["clinical_notes"] = ""
     add(p, "empty_notes", ["clinical_notes_missing"], "provider_outreach")
+
+    # 14. Duplicate of an earlier request: same member + same CPT, 2 days later (1)
+    original = packets[0]  # PA-2026-0001, complete 27447 case
+    dup_member = next(m for m in members if m["member_id"] == original["member"]["member_id"])
+    p = base_packet(nxt(), "27447", dup_member)
+    from datetime import datetime, timedelta
+    p["received_at"] = (datetime.fromisoformat(original["received_at"])
+                        + timedelta(days=2)).isoformat()
+    add(p, "duplicate_request", ["possible_duplicate"], "duplicate_review")
+
+    # 15. Fax-channel cases: unstructured text the extraction layer must parse (2)
+    fax_complete = base_packet(nxt(), "70553", pick_member("70553"))
+    fax_complete["channel"] = "fax"
+    (FAXES_DIR / "FAX-0001.txt").write_text(packet_to_fax(fax_complete))
+    labels[fax_complete["case_id"]] = {
+        "scenario": "fax_complete", "expected_findings": [],
+        "expected_route": "clinical_review::radiology", "fax": "FAX-0001.txt",
+    }
+    fax_missing_dx = base_packet(nxt(), "64483", pick_member("64483"))
+    fax_missing_dx["channel"] = "fax"
+    fax_missing_dx["request"]["diagnosis_icd10"] = None
+    fax_missing_dx["request"]["diagnosis_description"] = None
+    (FAXES_DIR / "FAX-0002.txt").write_text(packet_to_fax(fax_missing_dx))
+    labels[fax_missing_dx["case_id"]] = {
+        "scenario": "fax_missing_diagnosis", "expected_findings": ["diagnosis_missing"],
+        "expected_route": "provider_outreach", "fax": "FAX-0002.txt",
+    }
 
     for p in packets:
         (PACKETS_DIR / f"{p['case_id']}.json").write_text(json.dumps(p, indent=2))
     (DATA_DIR / "golden_labels.json").write_text(json.dumps(labels, indent=2))
-    print(f"Wrote {len(packets)} packets, {len(members)} members, {len(labels)} golden labels.")
+    print(f"Wrote {len(packets)} packets, 2 faxes, {len(members)} members, "
+          f"{len(labels)} golden labels.")
 
 
 if __name__ == "__main__":

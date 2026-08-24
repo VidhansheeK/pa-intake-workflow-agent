@@ -1,12 +1,12 @@
 {
   "case_id": "PA-2026-0021",
-  "received_at": "2026-08-17T08:57:00",
+  "received_at": "2026-08-21T08:57:00",
   "channel": "fax",
   "member": {
-    "member_id": "M100031676",
-    "name": "Asha Nair",
-    "dob": "1962-12-21",
-    "plan": "UHC Options PPO"
+    "member_id": "M100110866",
+    "name": "Arjun Kaur",
+    "dob": "1973-03-12",
+    "plan": "UHC Navigate"
   },
   "provider": {
     "npi": "3315869230",

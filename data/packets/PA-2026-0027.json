@@ -1,18 +1,18 @@
 {
-  "case_id": "PA-2026-0013",
-  "received_at": "2026-08-18T08:10:00",
-  "channel": "fax",
+  "case_id": "PA-2026-0027",
+  "received_at": "2026-08-22T12:44:00",
+  "channel": "phone",
   "member": {
-    "member_id": "M100102947",
-    "name": "Rohan Gupta",
-    "dob": "1964-02-13",
-    "plan": "UHC Navigate"
+    "member_id": "M100023757",
+    "name": "Asha Patel",
+    "dob": "1963-04-17",
+    "plan": "UHC Options PPO"
   },
   "provider": {
-    "npi": "0647468724",
-    "name": "Dr. D. Pillai",
+    "npi": "9577738724",
+    "name": "Dr. B. Kulkarni",
     "specialty": "musculoskeletal",
-    "phone": "+1-555-403-4566"
+    "phone": "+1-555-390-9445"
   },
   "request": {
     "procedure_cpt": "27447",

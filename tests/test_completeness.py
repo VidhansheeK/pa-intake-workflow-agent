@@ -42,6 +42,8 @@ def test_generator_npis_pass_validation():
     # guards against the generator's Luhn and the validator's Luhn diverging
     labels = json.loads((ROOT / "data" / "golden_labels.json").read_text())
     for case_id, label in labels.items():
+        if "fax" in label:  # fax cases live in data/faxes, not data/packets
+            continue
         if "npi_invalid" in label["expected_findings"] or "member_id_missing" in label["expected_findings"]:
             continue
         packet = json.loads((ROOT / "data" / "packets" / f"{case_id}.json").read_text())

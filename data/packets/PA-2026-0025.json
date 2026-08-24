@@ -1,18 +1,18 @@
 {
   "case_id": "PA-2026-0025",
-  "received_at": "2026-08-15T14:00:00",
+  "received_at": "2026-08-18T08:33:00",
   "channel": "phone",
   "member": {
     "member_id": null,
-    "name": "Asha Nair",
-    "dob": "1962-12-21",
-    "plan": "UHC Options PPO"
+    "name": "Omar Kaur",
+    "dob": "1989-06-19",
+    "plan": "UHC Choice Plus"
   },
   "provider": {
     "npi": "abc",
     "name": "Dr. E. Chatterjee",
     "specialty": "musculoskeletal",
-    "phone": "+1-555-619-6067"
+    "phone": "+1-555-782-7691"
   },
   "request": {
     "procedure_cpt": "27447",

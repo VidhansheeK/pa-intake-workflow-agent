@@ -1,18 +1,18 @@
 {
   "case_id": "PA-2026-0018",
-  "received_at": "2026-08-20T16:19:00",
-  "channel": "phone",
+  "received_at": "2026-08-20T09:56:00",
+  "channel": "portal",
   "member": {
-    "member_id": "M100000000",
-    "name": "Tara Patel",
-    "dob": "1951-12-09",
-    "plan": "UHC Choice Plus"
+    "member_id": "M100110866",
+    "name": "Arjun Kaur",
+    "dob": "1973-03-12",
+    "plan": "UHC Navigate"
   },
   "provider": {
-    "npi": "1241182447",
-    "name": "Dr. D. Pillai",
+    "npi": "4118244936",
+    "name": "Dr. F. Bhat",
     "specialty": "pharmacy",
-    "phone": "+1-555-834-6617"
+    "phone": "+1-555-308-5325"
   },
   "request": {
     "procedure_cpt": "J0135",

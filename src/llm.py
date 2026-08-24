@@ -29,6 +29,54 @@ DEFAULT_MODELS = {"anthropic": "claude-opus-5", "gemini": "gemini-3.5-flash-lite
 # fallbacks corrupted the first eval run).
 CALLS = {"llm": 0, "fallback": 0}
 
+# ---- Cost controls ---------------------------------------------------------
+# List prices in USD per million tokens (input, output). Free-tier Gemini
+# bills $0 in reality; we still meter at list price so the cost figure is
+# meaningful for a production sizing conversation.
+PRICES_PER_MTOK = {
+    "claude-opus-5": (5.00, 25.00),
+    # ponytail: list-price placeholder taken from the 2.5 flash-lite tier;
+    # update when Google publishes 3.5 pricing.
+    "gemini-3.5-flash-lite": (0.10, 0.40),
+}
+SPENT = {"usd": 0.0, "input_tokens": 0, "output_tokens": 0}
+BUDGET_USD = float(os.environ.get("PA_BUDGET_USD", "1.00"))
+MAX_LLM_CALLS = int(os.environ.get("PA_MAX_LLM_CALLS", "500"))  # runaway-loop breaker
+LEDGER_PATH = Path(__file__).parent.parent / "data" / "cost_ledger.jsonl"
+_budget_warned = False
+
+
+def _record_usage(model: str, input_tokens: int, output_tokens: int) -> None:
+    in_price, out_price = PRICES_PER_MTOK.get(model, (1.0, 4.0))
+    cost = (input_tokens * in_price + output_tokens * out_price) / 1_000_000
+    SPENT["usd"] += cost
+    SPENT["input_tokens"] += input_tokens
+    SPENT["output_tokens"] += output_tokens
+    from datetime import datetime, timezone
+    with LEDGER_PATH.open("a") as f:
+        f.write(json.dumps({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "model": model, "input_tokens": input_tokens,
+            "output_tokens": output_tokens, "est_cost_usd": round(cost, 6),
+        }) + "\n")
+
+
+def _budget_allows() -> bool:
+    """Hard stop on spend or call count — the agent degrades to offline rules
+    instead of running away. ponytail: per-process accounting; production
+    would meter through a shared cost service."""
+    global _budget_warned
+    total_calls = CALLS["llm"] + CALLS["fallback"]
+    if SPENT["usd"] >= BUDGET_USD or total_calls >= MAX_LLM_CALLS:
+        if not _budget_warned:
+            _budget_warned = True
+            print(f"[llm] BUDGET GUARD: est. spend ${SPENT['usd']:.4f} / "
+                  f"${BUDGET_USD:.2f} budget, {total_calls} calls / {MAX_LLM_CALLS} max "
+                  f"— degrading to offline mode")
+        return False
+    return True
+# ---------------------------------------------------------------------------
+
 # Load KEY=VALUE lines from the project's .env (gitignored) so keys work in the
 # CLI, evals, and Streamlit without exporting. Real env vars take precedence.
 _env_file = Path(__file__).parent.parent / ".env"
@@ -70,6 +118,8 @@ def _anthropic_json(system: str, prompt: str, schema: dict) -> dict | None:
         messages=[{"role": "user", "content": prompt}],
         output_config={"format": {"type": "json_schema", "schema": schema}},
     )
+    _record_usage(_model("anthropic"), response.usage.input_tokens,
+                  response.usage.output_tokens)
     if response.stop_reason == "refusal":
         return None  # classifiers declined; deterministic fallback takes over
     text = next(b.text for b in response.content if b.type == "text")
@@ -118,6 +168,9 @@ def _gemini_json(system: str, prompt: str, schema: dict) -> dict | None:
             delay = int(match.group(1)) + 1 if match else 30
             print(f"[llm:gemini] rate limited; retrying in {delay}s")
             time.sleep(min(delay, 65))
+    usage = payload.get("usageMetadata", {})
+    _record_usage(model, usage.get("promptTokenCount", 0),
+                  usage.get("candidatesTokenCount", 0))
     candidates = payload.get("candidates") or []
     if not candidates:  # safety-blocked or empty; use deterministic fallback
         return None
@@ -129,6 +182,9 @@ def complete_json(system: str, prompt: str, schema: dict) -> dict | None:
     """Ask the active LLM for a response matching `schema`. None => offline fallback."""
     prov = provider()
     if prov == "offline":
+        return None
+    if not _budget_allows():
+        CALLS["fallback"] += 1
         return None
     try:
         result = _anthropic_json(system, prompt, schema) if prov == "anthropic" \

@@ -2,10 +2,12 @@
 
 Priority order:
 1. CPT known and PA not required        -> no_auth_required (auto-close letter)
-2. Member found-but-ineligible issues   -> eligibility_review (internal team)
-3. Any other finding                    -> provider_outreach (with follow-up letter)
-4. Complete + expedited                 -> expedited_clinical_review::<specialty>
-5. Complete + standard                  -> clinical_review::<specialty>
+2. Possible duplicate request           -> duplicate_review (don't chase the provider
+                                           for a case that may already exist)
+3. Member found-but-ineligible issues   -> eligibility_review (internal team)
+4. Any other finding                    -> provider_outreach (with follow-up letter)
+5. Complete + expedited                 -> expedited_clinical_review::<specialty>
+6. Complete + standard                  -> clinical_review::<specialty>
 """
 
 INTERNAL_FINDINGS = {"member_not_found"}  # resolvable internally, not by the provider
@@ -20,6 +22,9 @@ def route(packet: dict, findings: list[dict], policies: dict) -> dict:
                 "reason": f"CPT {cpt} does not require prior authorization."}
 
     codes = {f["code"] for f in findings}
+    if "possible_duplicate" in codes:
+        detail = next(f["detail"] for f in findings if f["code"] == "possible_duplicate")
+        return {"queue": "duplicate_review", "reason": detail}
     if codes & INTERNAL_FINDINGS:
         return {"queue": "eligibility_review",
                 "reason": "Member could not be matched to eligibility; needs internal review."}

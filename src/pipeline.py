@@ -1,4 +1,4 @@
-"""End-to-end intake pipeline: load packet -> completeness -> follow-ups -> route.
+"""End-to-end intake pipeline: (extract) -> completeness -> follow-ups -> route.
 
 Nothing leaves the system without human approval: the pipeline only *proposes*
 (findings, letter, route); approval happens in the review app (app/review_app.py)
@@ -7,15 +7,17 @@ or via the CLI gate here, and every decision lands in the audit log.
 CLI:
     python -m src.pipeline PA-2026-0003            # process one case, print proposal
     python -m src.pipeline PA-2026-0003 --approve  # interactive human approval gate
+    python -m src.pipeline --fax data/faxes/FAX-0001.txt   # unstructured fax entry
     python -m src.pipeline --all                   # process every packet (no approvals)
 """
 import json
 import sys
 from pathlib import Path
 
-from . import audit, completeness, followups, llm, router
+from . import audit, completeness, duplicates, extract, followups, llm, router
 
 PACKETS_DIR = Path(__file__).parent.parent / "data" / "packets"
+PROPOSALS_DIR = Path(__file__).parent.parent / "data" / "proposals"
 
 
 def load_packet(case_id: str) -> dict:
@@ -28,14 +30,18 @@ def process(packet: dict, policies: dict | None = None, members: dict | None = N
     members = members if members is not None else completeness.load_members()
 
     findings = completeness.check(packet, policies, members)
+    findings += duplicates.check(packet)
     decision = router.route(packet, findings, policies)
     result = {
         "case_id": packet["case_id"],
         "mode": llm.provider(),
+        "channel": packet.get("channel"),
+        "extraction_source": packet.get("extraction_source"),
         "findings": findings,
         "route": decision,
         "followup": None,
         "status": "pending_approval",
+        "est_llm_cost_usd": round(llm.SPENT["usd"], 6),
     }
     if decision["queue"] == "provider_outreach":
         result["followup"] = followups.draft(packet, findings)
@@ -43,6 +49,16 @@ def process(packet: dict, policies: dict | None = None, members: dict | None = N
     audit.log(packet["case_id"], "pipeline_proposal", actor=f"pipeline({llm.provider()})",
               details={"findings": [f["code"] for f in findings], "route": decision["queue"]})
     return result
+
+
+def store_proposal(result: dict) -> None:
+    PROPOSALS_DIR.mkdir(exist_ok=True)
+    (PROPOSALS_DIR / f"{result['case_id']}.json").write_text(json.dumps(result, indent=2))
+
+
+def load_proposal(case_id: str) -> dict | None:
+    path = PROPOSALS_DIR / f"{case_id}.json"
+    return json.loads(path.read_text()) if path.exists() else None
 
 
 def record_decision(case_id: str, approved: bool, reviewer: str, edits: str | None = None) -> None:
@@ -75,6 +91,13 @@ def main() -> None:
             result = process(json.loads(path.read_text()))
             print(f"{result['case_id']}: {len(result['findings'])} finding(s) "
                   f"-> {result['route']['queue']}")
+        return
+
+    if args[0] == "--fax":
+        packet = extract.extract_from_text(Path(args[1]).read_text())
+        print(f"Extracted packet from fax (source: {packet['extraction_source']})")
+        result = process(packet)
+        _print(result)
         return
 
     result = process(load_packet(args[0]))

@@ -1,12 +1,12 @@
 {
   "case_id": "PA-2026-0012",
-  "received_at": "2026-08-17T15:15:00",
+  "received_at": "2026-08-18T11:55:00",
   "channel": "portal",
   "member": {
-    "member_id": "M100015838",
-    "name": "Zoya Nair",
-    "dob": "1955-10-14",
-    "plan": "UHC Choice Plus"
+    "member_id": "M100031676",
+    "name": "Asha Nair",
+    "dob": "1962-12-21",
+    "plan": "UHC Options PPO"
   },
   "provider": {
     "npi": "12345",

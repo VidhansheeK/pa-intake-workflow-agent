@@ -56,15 +56,16 @@ def valid_npi(npi) -> bool:
     return str((10 - total % 10) % 10) == npi[9]
 
 
-def _finding(code: str, severity: str, detail: str) -> dict:
-    return {"code": code, "severity": severity, "detail": detail}
+def _finding(code: str, severity: str, detail: str, source: str = "rule") -> dict:
+    return {"code": code, "severity": severity, "detail": detail, "source": source}
 
 
-def check_clinical_notes(notes: str, policy: dict) -> list[dict]:
-    """Return unmet clinical requirements. LLM judges semantics; offline uses keywords."""
+def check_clinical_notes(notes: str, policy: dict) -> tuple[list[dict], str]:
+    """Return (unmet clinical requirements, source). LLM judges semantics;
+    offline uses keywords (source: 'heuristic')."""
     requirements = policy.get("clinical_requirements", [])
     if not requirements:
-        return []
+        return [], "rule"
 
     result = llm.complete_json(
         system=(
@@ -83,7 +84,7 @@ def check_clinical_notes(notes: str, policy: dict) -> list[dict]:
     )
     if result is not None:
         known = {r["id"] for r in requirements}
-        return [u for u in result["unmet_requirements"] if u["id"] in known]
+        return [u for u in result["unmet_requirements"] if u["id"] in known], "llm"
 
     # ponytail: offline fallback is a keyword heuristic — LLM mode does the real
     # semantic check; upgrade path is better keywords per policies.json.
@@ -92,7 +93,7 @@ def check_clinical_notes(notes: str, policy: dict) -> list[dict]:
         {"id": r["id"], "reason": f"no mention of: {r['text']}"}
         for r in requirements
         if not any(k in lowered for k in r["keywords"])
-    ]
+    ], "heuristic"
 
 
 def check(packet: dict, policies: dict | None = None, members: dict | None = None) -> list[dict]:
@@ -143,9 +144,10 @@ def check(packet: dict, policies: dict | None = None, members: dict | None = Non
             findings.append(_finding("clinical_notes_missing", "blocking",
                                      "Clinical notes are empty."))
         else:
-            unmet = check_clinical_notes(notes, policy)
+            unmet, notes_source = check_clinical_notes(notes, policy)
             if unmet:
                 detail = "; ".join(u["reason"] for u in unmet)
                 findings.append(_finding("clinical_notes_insufficient", "blocking",
-                                         f"Clinical documentation incomplete: {detail}"))
+                                         f"Clinical documentation incomplete: {detail}",
+                                         source=notes_source))
     return findings

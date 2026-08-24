@@ -36,3 +36,9 @@ def test_complete_standard_routes_to_specialty():
 def test_complete_expedited_routes_to_expedited_queue():
     decision = router.route(make_packet(cpt="93458", urgency="expedited"), [], POLICIES)
     assert decision["queue"] == "expedited_clinical_review::cardiology"
+
+
+def test_duplicate_beats_eligibility_and_outreach():
+    findings = [{"code": "possible_duplicate", "detail": "dup of PA-X"},
+                {"code": "member_not_found"}, {"code": "npi_invalid"}]
+    assert router.route(make_packet(), findings, POLICIES)["queue"] == "duplicate_review"

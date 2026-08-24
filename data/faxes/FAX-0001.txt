@@ -1,0 +1,16 @@
+UHC PRIOR AUTHORIZATION REQUEST — FAX TRANSMISSION
+Reference: PA-2026-0028
+Received: 2026-08-20T17:21:00
+Member ID: M100079190
+Member Name: Rohan Verma
+Member DOB: 1974-02-18
+Plan: UHC Navigate
+Provider NPI: 3433200375
+Provider Name: Dr. B. Kulkarni
+Provider Phone: +1-555-566-7790
+Procedure (CPT): 70553 - MRI brain with and without contrast
+Diagnosis (ICD-10): R51.9 - Headache, unspecified
+Urgency: standard
+
+CLINICAL NOTES:
+Patient presents with recurrent symptoms. Persistent headache with intermittent vision change and left arm numbness. Symptoms persisting for 6 weeks; prior CT unremarkable, further workup indicated.

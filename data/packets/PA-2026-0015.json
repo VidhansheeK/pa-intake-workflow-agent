@@ -1,18 +1,18 @@
 {
   "case_id": "PA-2026-0015",
-  "received_at": "2026-08-21T10:04:00",
-  "channel": "phone",
+  "received_at": "2026-08-15T11:25:00",
+  "channel": "portal",
   "member": {
-    "member_id": "M100007919",
-    "name": "Kabir Rao",
-    "dob": "1997-02-22",
+    "member_id": "M100071271",
+    "name": "Vikram Iyer",
+    "dob": "1952-12-15",
     "plan": "UHC Options PPO"
   },
   "provider": {
-    "npi": "1361939907",
-    "name": "Dr. B. Kulkarni",
+    "npi": "9399091690",
+    "name": "Dr. F. Bhat",
     "specialty": "pharmacy",
-    "phone": "+1-555-529-9565"
+    "phone": "+1-555-367-4346"
   },
   "request": {
     "procedure_cpt": "J0135",

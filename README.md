@@ -10,11 +10,17 @@ for every decision.
 ## What it does
 
 ```
-packet (JSON) ──▶ completeness check ──▶ follow-up drafting ──▶ routing ──▶ HUMAN APPROVAL ──▶ audit log
-                  deterministic rules      LLM + verification     rule-based    review app /       JSONL
-                  + LLM clinical check     loop (or templates)    decision      CLI gate
-                                                                  table
+fax (.txt) ──▶ extraction ─┐
+               LLM/regex   ├─▶ completeness ──▶ duplicate ──▶ follow-up ──▶ routing ──▶ HUMAN ──▶ audit
+packet (JSON) ─────────────┘   rules + LLM      check         drafting +    decision    APPROVAL   log
+   │                           clinical check   (rule)        verify loop   table       (app/CLI)  JSONL
+   └── or drop into data/inbox/ — the watcher processes arrivals event-driven
 ```
+
+Cross-cutting: a **cost guard** meters every LLM call (tokens + list-price
+cost to `data/cost_ledger.jsonl`) and hard-stops at a budget (`PA_BUDGET_USD`,
+default $1) plus a runaway-loop call cap — the agent degrades to offline rules
+instead of overspending.
 
 - **Deterministic where a rule can decide** — field presence, NPI Luhn checksum,
   ICD-10 format, eligibility lookup, routing. Auditable, testable, free.
@@ -36,10 +42,16 @@ python data/generate_packets.py
 # process one case from the CLI
 python -m src.pipeline PA-2026-0012            # incomplete: missing member ID
 python -m src.pipeline PA-2026-0001            # complete: routes to clinical review
+python -m src.pipeline PA-2026-0027            # duplicate request detection
+python -m src.pipeline --fax data/faxes/FAX-0002.txt   # unstructured fax entry
 python -m src.pipeline PA-2026-0012 --approve  # with interactive approval gate
 
-# run the review queue UI (the human approval step)
+# run the review console (queue + dashboard + cost + audit + evals tabs)
 streamlit run app/review_app.py
+
+# event-driven intake: run the watcher, then drop a file into the inbox
+python -m src.watcher                          # in a second terminal
+cp data/faxes/FAX-0001.txt data/inbox/         # appears in the review queue
 
 # run evals against the golden labels
 python evals/run_evals.py
@@ -76,9 +88,12 @@ fallback. Override the model with `PA_MODEL`.
 | `data/packets/` | 26 synthetic intake packets across 13 scenarios |
 | `data/golden_labels.json` | Ground truth per case (expected findings + route) — used only by evals |
 | `src/completeness.py` | Missing-info detection (rules + LLM clinical check) |
+| `src/extract.py` | Fax text → structured packet (LLM extraction, regex fallback) |
+| `src/duplicates.py` | Duplicate-request detection (same member + CPT in 14 days) |
 | `src/followups.py` | Follow-up letter drafting + rubric verification loop |
-| `src/router.py` | Deterministic routing decision table |
+| `src/router.py` | Deterministic routing decision table (6 queues) |
 | `src/pipeline.py` | Orchestrator + CLI |
+| `src/watcher.py` | Event-driven intake: data/inbox → pipeline → review queue |
 | `src/audit.py` | Append-only JSONL audit log |
 | `app/review_app.py` | Streamlit human-approval review queue |
 | `evals/run_evals.py` | Precision/recall/F1, routing accuracy, letter rubric pass rate |
@@ -87,12 +102,12 @@ fallback. Override the model with `PA_MODEL`.
 | `BUILD_LOG.md` | Running log of problems, rejected strategies, decisions |
 | `AI_USAGE.md` | How AI was used to build this, and where humans stayed in the loop |
 
-## Current eval results (26 cases)
+## Current eval results (29 cases, incl. fax extraction + duplicate scenarios)
 
 | Mode | Missing-info P / R / F1 | Routing | Letter rubric | LLM call integrity |
 |---|---|---|---|---|
-| offline (deterministic) | 100% / 100% / 100% | 26/26 | 15/15 | n/a |
-| LLM (`gemini-3.5-flash-lite`) | 100% / 100% / 100% | 26/26 | 15/15 | 38/38 served by LLM |
+| offline (deterministic) | 100% / 100% / 100% | 29/29 | 16/16 | n/a |
+| LLM (`gemini-3.5-flash-lite`) | see `evals/results.json` after an LLM run | | | reported per run |
 
 Offline mode is a *consistency* check of the deterministic path against
 by-construction labels. The **LLM call integrity** column exists because an

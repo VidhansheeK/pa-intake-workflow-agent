@@ -7,5 +7,9 @@ venv/
 .streamlit/
 audit_log.jsonl
 evals/results.json
+data/cost_ledger.jsonl
+data/proposals/
+data/processed/
+data/inbox/
 .DS_Store
 data/decisions.json

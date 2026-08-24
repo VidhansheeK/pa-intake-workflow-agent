@@ -161,15 +161,25 @@ the same harness measures it, and known failure modes are listed below.
 - **Controls:** LLM output is schema-constrained, rubric-verified, and
   human-approved before any external effect; routing is deterministic and
   explainable line-by-line.
+- **Cost controls:** every LLM call is metered (tokens + list-price cost) to
+  an append-only ledger; a hard budget (`PA_BUDGET_USD`) and a runaway-loop
+  call cap (`PA_MAX_LLM_CALLS`) degrade the agent to offline rules instead of
+  letting it overspend. The dashboard shows spend vs budget live.
 - **Handoff owner:** the PA intake operations team (product owner) with the
   platform team owning the pipeline service; `BUILD_LOG.md` + this doc are the
   handoff package.
 
 ## 7. Limitations, scaling, cost, next iteration
 
-- **Unstructured intake (fax OCR → fields)** is the real-world entry point and
-  the next LLM extraction step; the pipeline was structured so extraction
-  slots in before `completeness.check()` without touching anything else.
+*(Since first draft, three items were promoted from this list into the build:
+**fax-text extraction** (`src/extract.py` — LLM extraction with regex
+fallback; a true image-OCR step would sit in front of it in production),
+**duplicate-request detection** (`src/duplicates.py`, deterministic, own
+review queue), and **event-driven intake** (`src/watcher.py`, polling loop
+standing in for a message-bus subscription). Remaining items below.)*
+
+- **Image OCR** for scanned faxes (we extract from fax *text*; the OCR model
+  in front is the remaining piece of the unstructured entry point).
 - **Policy coverage:** 6 CPTs here; production needs the policy catalog
   (hundreds of codes) loaded from the policy system of record, not a JSON file.
 - **Scaling:** the pipeline is stateless per case → horizontal scale is

@@ -1,0 +1,15 @@
+UHC PRIOR AUTHORIZATION REQUEST — FAX TRANSMISSION
+Reference: PA-2026-0029
+Received: 2026-08-20T17:12:00
+Member ID: M100110866
+Member Name: Arjun Kaur
+Member DOB: 1973-03-12
+Plan: UHC Navigate
+Provider NPI: 6763201632
+Provider Name: Dr. C. D'Souza
+Provider Phone: +1-555-923-9486
+Procedure (CPT): 64483 - Transforaminal epidural steroid injection, lumbar
+Urgency: standard
+
+CLINICAL NOTES:
+Patient reports low back pain for 5 months. Pain is radicular, radiating down the left leg to the foot. 8 weeks of physical therapy and ibuprofen without improvement. MRI lumbar spine shows L4-L5 disc herniation with foraminal stenosis on the left.

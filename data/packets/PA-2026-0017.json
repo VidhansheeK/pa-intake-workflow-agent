@@ -1,18 +1,18 @@
 {
   "case_id": "PA-2026-0017",
-  "received_at": "2026-08-19T11:32:00",
+  "received_at": "2026-08-17T10:59:00",
   "channel": "fax",
   "member": {
-    "member_id": "M100007919",
-    "name": "Kabir Rao",
-    "dob": "1997-02-22",
-    "plan": "UHC Options PPO"
+    "member_id": "M100063352",
+    "name": "Rohan Patel",
+    "dob": "1974-02-12",
+    "plan": "UHC Navigate"
   },
   "provider": {
-    "npi": "2513542789",
-    "name": "Dr. E. Chatterjee",
+    "npi": "1354278495",
+    "name": "Dr. A. Menon",
     "specialty": "musculoskeletal",
-    "phone": "+1-555-726-9666"
+    "phone": "+1-555-783-5905"
   },
   "request": {
     "procedure_cpt": "27447",

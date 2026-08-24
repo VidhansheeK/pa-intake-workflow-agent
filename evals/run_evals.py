@@ -16,7 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
-from src import completeness, followups, llm, pipeline  # noqa: E402
+from src import completeness, extract, followups, llm, pipeline  # noqa: E402
 
 
 def main() -> None:
@@ -30,7 +30,11 @@ def main() -> None:
     failures = []
 
     for case_id, label in sorted(labels.items()):
-        packet = pipeline.load_packet(case_id)
+        if "fax" in label:  # fax cases exercise the extraction layer end-to-end
+            packet = extract.extract_from_text(
+                (ROOT / "data" / "faxes" / label["fax"]).read_text())
+        else:
+            packet = pipeline.load_packet(case_id)
         result = pipeline.process(packet, policies, members)
 
         predicted = {f["code"] for f in result["findings"]}
