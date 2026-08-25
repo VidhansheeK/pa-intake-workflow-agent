@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cohort 5 Capstone Brief — Prior Authorization Intake Workflow Agent</title>
+<style>
+  @page { size: A4; margin: 12mm 12mm; }
+  * { margin: 0; box-sizing: border-box; }
+  body { font: 12px/1.45 "Segoe UI", system-ui, -apple-system, sans-serif;
+         color: #1f2937; background: #fff; max-width: 176mm; margin: 0 auto; padding: 8mm 0; }
+  h1 { font-size: 21px; letter-spacing: -0.02em; }
+  h2 { font-size: 14px; margin: 14px 0 6px; color: #0f3d91;
+       border-bottom: 1.5px solid #0f3d91; padding-bottom: 2px; }
+  h3 { font-size: 12px; margin: 8px 0 3px; }
+  p, li { margin-bottom: 4px; }
+  ul { padding-left: 18px; margin: 2px 0 6px; }
+  .meta { color: #64748b; font-size: 11.5px; margin: 2px 0 10px; }
+  .tag { display: inline-block; background: #eef2f9; border: 1px solid #c7d4ea;
+         border-radius: 4px; padding: 1px 8px; font-size: 10.5px; color: #0f3d91;
+         margin-right: 4px; }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; margin: 6px 0; }
+  th, td { border: 1px solid #cbd5e1; padding: 4px 7px; text-align: left; }
+  th { background: #f1f5f9; }
+  .two-col { display: flex; gap: 16px; }
+  .two-col > div { flex: 1; }
+  .callout { background: #f6f8fb; border-left: 3px solid #0f3d91;
+             padding: 6px 10px; margin: 6px 0; }
+  .pagebreak { break-before: page; }
+  .small { font-size: 10.5px; color: #64748b; }
+  code { background: #f1f5f9; padding: 0 4px; border-radius: 3px; font-size: 11px; }
+</style>
+</head>
+<body>
+
+<!-- ==================== PAGE 1: PROBLEM BRIEF ==================== -->
+<h1>Prior Authorization Intake Workflow Agent</h1>
+<p class="meta">FDE Cohort 5 Qualification Capstone — Track 2 · Vidhanshee Kakkar ·
+August 2026 · <span class="tag">SYNTHETIC DATA ONLY — NO PHI</span></p>
+
+<h2>Problem brief</h2>
+<p><b>Target user.</b> The prior-authorization (PA) intake coordinator at UHC who
+receives PA requests from providers (portal, fax, phone) and must decide, case by
+case, whether a request is complete enough to enter clinical review.</p>
+
+<p><b>Workflow pain point.</b> Intake completeness is checked manually today, and
+incomplete requests are the single cheapest problem the PA chain fails to catch
+early. An incomplete packet doesn't cost one delay — it starts a provider
+round-trip cycle where each exchange adds days; it produces avoidable denials that
+are later overturned on appeal (pure rework on both sides); it burns the
+regulatory turnaround clocks CMS is tightening through 2026–27; and it feeds the
+provider abrasion UHC has publicly committed to reducing. Catching a missing TB
+screening at intake on day 0 is roughly an order of magnitude cheaper than
+expediting the same case after a denial on day 12.</p>
+
+<p><b>Value hypothesis.</b> An assistant that detects <i>everything</i> missing the
+moment a request arrives, drafts one consolidated provider follow-up (one
+round-trip instead of several), and routes the case correctly — with a human
+approving every outbound action — reduces round-trips per case and
+time-to-clinical-review without removing human accountability.</p>
+
+<p><b>Success metrics.</b> Missing-info detection precision/recall vs a golden set
+(recall ≥95%: a missed gap becomes a downstream delay; precision matters because
+false asks create new provider abrasion) · routing accuracy · follow-up letter
+rubric pass rate (covers every finding, invents nothing) · reviewer time per case.</p>
+
+<p><b>Constraints &amp; assumptions.</b> Synthetic data only (no PHI); must run
+end-to-end for a reviewer with zero API keys; 6-CPT policy catalog standing in for
+the policy system of record; static eligibility snapshot standing in for the
+eligibility service; LLM spend capped by a hard budget guard.</p>
+
+<h2>What was built</h2>
+<div class="callout">
+<b>fax text → extraction → completeness check → duplicate check → follow-up
+drafting → routing → HUMAN APPROVAL → audit log</b><br>
+<span class="small">Plus: event-driven intake (drop a file, it enters the queue), a
+review console (queue · dashboard · audit · evals tabs), and per-call LLM cost
+metering with a hard budget + runaway-loop cap.</span>
+</div>
+
+<p><b>The core design judgment — deterministic wherever a rule can decide; LLM only
+where language understanding is required.</b> Field presence, NPI Luhn checksum,
+ICD-10/CPT format, eligibility lookup, duplicate detection, and all routing are
+plain auditable rules. The model does exactly two things: judging whether
+free-text clinical notes satisfy the procedure's policy requirements, and drafting
+the provider letter. Every model output is schema-constrained, verified by a
+code rubric (with one feedback retry, then a safe template fallback), and
+human-approved before any external effect. On any API failure, safety refusal, or
+budget breach the system degrades to fully offline deterministic mode — the
+workflow never blocks on a model.</p>
+
+<p><b>Example that carries the value:</b> a request for adalimumab (biologic)
+documents the RA diagnosis and the failed methotrexate trial, but never mentions
+the TB screening the policy requires. Keyword matching cannot reliably catch
+this; the model reads the notes and flags exactly that gap, and the drafted
+letter asks for exactly that — nothing invented, verified in code.</p>
+
+<!-- ==================== PAGE 2: AI EVIDENCE + RESULTS ==================== -->
+<div class="pagebreak"></div>
+<h2>AI evidence</h2>
+<div class="two-col">
+<div>
+<h3>Model &amp; tool choices</h3>
+<ul>
+<li>Provider ladder: Anthropic Claude (<code>claude-opus-5</code>) → Google Gemini
+free tier (<code>gemini-3.5-flash-lite</code>) → offline deterministic fallbacks.
+One 30-line function per provider behind one interface.</li>
+<li>Structured outputs (JSON schema) on every call — no fragile text parsing.</li>
+<li>Prompts are defensive: "a requirement is met only if explicitly documented";
+extraction "returns null for missing fields — never invents".</li>
+<li>Verification loop (loop-engineering "Loop 2"): draft → code rubric → one
+retry with the specific failures as feedback → template fallback.</li>
+</ul>
+<h3>Data approach</h3>
+<ul>
+<li>Self-generated synthetic dataset: 27 packets + 2 fax documents across 15
+scenario types (complete, missing/invalid fields, insufficient clinical notes per
+three different policies, expedited without justification, duplicates, fax
+channel). Seeded and reproducible.</li>
+<li>Golden labels emitted <i>by construction</i>, readable only by the eval
+harness — the pipeline cannot see its own answer key.</li>
+</ul>
+</div>
+<div>
+<h3>Human review checkpoints</h3>
+<ul>
+<li>One approval gate at the sole point of external effect: a named reviewer
+approves / edits / rejects every proposal (review console or CLI).</li>
+<li>Append-only audit log of every proposal and decision (actor, timestamp).</li>
+<li>Reviewer letter-edits are captured — the labeled improvement signal for the
+next iteration.</li>
+</ul>
+<h3>Known failure modes &amp; risks (measured, not hidden)</h3>
+<ul>
+<li>Offline keyword fallback misses negation ("no PT attempted") — explicitly a
+fallback; LLM mode handles it.</li>
+<li>Rate limiting once silently diluted an "LLM-mode" eval with offline
+fallbacks — results looked perfect and weren't. Fixed with retry-waits <i>and</i>
+a call-integrity metric that proves which path served every call.</li>
+<li>A provider listing a model ≠ the model being servable (Gemini 404'd a listed
+model) — caught by the integrity metric; models are probed through the production
+code path before eval runs.</li>
+<li>Golden labels share provenance with the generator; mitigated by hand-reviewed
+scenarios and independent unit tests.</li>
+</ul>
+</div>
+</div>
+
+<h2>Measured results (29-case golden set)</h2>
+<table>
+<tr><th>Mode</th><th>Missing-info P / R / F1</th><th>Routing</th>
+<th>Letter rubric</th><th>LLM call integrity</th></tr>
+<tr><td>Offline (deterministic)</td><td>100% / 100% / 100%</td><td>29/29</td>
+<td>16/16</td><td>n/a</td></tr>
+<tr><td>LLM (Gemini, 26-case run)</td><td>100% / 100% / 100%</td><td>26/26</td>
+<td>15/15</td><td><b>38/38 served by LLM</b></td></tr>
+</table>
+<p class="small">Offline 100% is a consistency check of the deterministic path
+against by-construction labels. The LLM run's value shows in <i>what</i> it
+catches (semantic gaps like the undocumented TB screening) — and in the
+integrity column, which exists because an earlier run was silently diluted.
+26 automated tests cover the validators, router priorities, extraction, duplicate
+logic, and budget guard.</p>
+
+<!-- ==================== PAGE 3: ENTERPRISE READINESS ==================== -->
+<div class="pagebreak"></div>
+<h2>Enterprise readiness</h2>
+<table>
+<tr><th>Dimension</th><th>Prototype</th><th>Production path</th></tr>
+<tr><td>Data classification</td><td>Synthetic only, zero PHI anywhere in the
+repo</td><td>Intake packets are PHI/HIPAA: BAA with the model provider,
+zero-retention API terms, encryption in transit and at rest</td></tr>
+<tr><td>Access</td><td>Local run; keys in gitignored <code>.env</code>; runs with
+no keys at all</td><td>SSO + RBAC (intake-coordinator role); secrets manager;
+intake-queue ingestion (the watcher's polling stands in for a message-bus
+subscription)</td></tr>
+<tr><td>Audit &amp; logging</td><td>Append-only JSONL of every proposal and human
+decision</td><td>Ship to the enterprise log store with immutable retention</td></tr>
+<tr><td>AI controls</td><td>Schema-constrained outputs · code-rubric verification ·
+human gate before any external effect · deterministic routing</td>
+<td>Same controls; add periodic sampled QA of approved letters</td></tr>
+<tr><td>Cost controls</td><td>Every call metered (tokens + list-price cost) to a
+ledger; hard budget (<code>PA_BUDGET_USD</code>) + runaway-loop call cap degrade
+the agent to offline rules — a stuck loop cannot overspend</td>
+<td>Shared metering service with per-team budgets and alerting</td></tr>
+<tr><td>Handoff owner</td><td colspan="2">PA intake operations (product owner) +
+platform engineering (service owner). Handoff package: DESIGN.md, BUILD_LOG.md
+(every decision and failure recorded live), this brief, and the eval harness as
+the regression gate.</td></tr>
+</table>
+
+<h2>Cost &amp; scaling sketch</h2>
+<p>The pipeline is stateless per case — horizontal scaling is trivial. LLM cost
+≈ $0.02–0.04 per incomplete case at Opus list price (a fraction of a cent on
+Gemini); complete cases make one model call. Overnight backlogs fit the Batches
+API at 50% price. Against each avoided provider round-trip (days of turnaround,
+appeal rework), per-case model cost is noise.</p>
+
+<h2>Next iteration path</h2>
+<ul>
+<li><b>Image OCR in front of extraction</b> — the extraction interface already
+treats the fax as untrusted text, so a scan→text model (or multimodal Gemini
+reading the fax image directly) slots in without pipeline changes.</li>
+<li><b>Policy catalog at scale</b> — load the hundreds-of-CPTs catalog from the
+policy system of record in place of the 6-CPT file.</li>
+<li><b>Learn from the gate (loop-engineering Loop 4)</b> — reviewer edits and
+rejections in the audit log are labeled signal; feed monthly samples into prompt
+and policy updates with the eval harness as the regression gate.</li>
+<li><b>Named scope cuts</b> — gold-carding trusted providers, richer duplicate
+similarity (beyond member+CPT window), letter-tone LLM-judge QA.</li>
+</ul>
+
+<p class="small" style="margin-top:10px">Repository: README for run instructions
+(zero keys needed) · demo recording accompanies this brief · UHC Tech / Optum —
+FDE Cohort 5 Capstone, Track 2.</p>
+
+</body>
+</html>
