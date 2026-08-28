@@ -17,6 +17,42 @@
 
 ---
 
+## ⚡ Run it in 60 seconds
+
+**No API key needed. No database. No Docker. Just Python 3.10+.**
+
+```bash
+git clone https://github.com/VidhansheeK/pa-intake-workflow-agent.git
+cd pa-intake-workflow-agent
+python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+
+pytest tests/                          # ✅ 26 passed
+python evals/run_evals.py              # ✅ 100% detection · 29/29 routing · 16/16 rubric
+python -m src.pipeline PA-2026-0018    # 🔬 see it catch a missing TB screening
+streamlit run app/review_app.py        # 🧑‍⚖️ open the review console
+```
+
+👉 **[Full step-by-step instructions, options, and troubleshooting ↓](#-how-to-run-this-full-guide)**
+
+---
+
+### 📖 Contents
+
+| | |
+|---|---|
+| [**What problem does this solve?**](#what-problem-does-this-solve) | Why intake is the cheapest place to fix prior auth |
+| [**How it works**](#how-it-works) | The architecture, in one diagram |
+| [**The design decision that matters**](#the-one-design-decision-that-matters) | Why rules do the checking and AI only reads language |
+| [**What it can do**](#what-it-can-do) | Every feature, one line each |
+| [**The review console**](#the-review-console) | The human approval workspace |
+| [**How we know it works**](#how-we-know-it-works) | Golden answer key, metrics, the letter rubric, results |
+| [**How to run this**](#-how-to-run-this-full-guide) | Six steps, verified from a clean clone |
+| [**What's inside**](#whats-inside) | Repo map |
+| [**Honest limitations**](#honest-limitations) | What it can't do, and what was cut on purpose |
+
+---
+
 ## What problem does this solve?
 
 Before an insurer pays for an expensive procedure, the doctor has to ask permission first. That request is called a **prior authorization**, and someone at the insurer has to check it by hand: *is everything here that we need?*
@@ -190,7 +226,7 @@ Plus **26 automated tests** covering the NPI checksum, routing priorities, fax e
 
 ---
 
-## How to run this
+## 🛠 How to run this (full guide)
 
 **You need:** Python 3.10 or newer. **You don't need:** an API key, a database, Docker, or an internet connection.
 
