@@ -13,3 +13,5 @@ data/processed/
 data/inbox/
 .DS_Store
 data/decisions.json
+docs/DEMO_SCRIPT.md
+docs/UNDERSTANDING.md
