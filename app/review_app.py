@@ -9,6 +9,7 @@ Optionally alongside:  python -m src.watcher   (event-driven intake)
 """
 import difflib
 import json
+import subprocess
 import sys
 import time
 from collections import Counter
@@ -308,23 +309,64 @@ with tab_audit:
 
 # ---------- tab 4: evals ----------
 with tab_evals:
-    st.subheader("Latest eval run")
-    if RESULTS_PATH.exists():
-        results = json.loads(RESULTS_PATH.read_text())
-        e1, e2, e3, e4 = st.columns(4)
-        e1.metric("Detection F1", f"{results['finding_f1']:.0%}")
-        e2.metric("Routing accuracy", f"{results['routing_accuracy']:.0%}")
-        rubric = results.get("letter_rubric_pass_rate")
-        e3.metric("Letter rubric", f"{rubric:.0%}" if rubric is not None else "n/a")
-        calls = results.get("llm_calls", {})
-        total = calls.get("llm", 0) + calls.get("fallback", 0)
-        e4.metric("LLM call integrity",
-                  f"{calls.get('llm', 0)}/{total}" if total else "offline run")
-        st.caption(f"Mode: {results['mode']} · {results['cases']} cases · "
-                   "Run `python evals/run_evals.py` to refresh.")
-        if results.get("failures"):
-            st.error("\n".join(results["failures"]))
-        else:
-            st.success("No failures in the latest run.")
+    head = st.columns([3, 1])
+    head[0].subheader("Evaluation against the golden set")
+    if head[1].button("▶ Run evaluation now", type="primary", use_container_width=True):
+        with st.status("Scoring every case through the real pipeline…", expanded=True) as s:
+            st.write(f"Mode: **{llm.provider()}** · replaying all cases")
+            proc = subprocess.run([sys.executable, str(ROOT / "evals" / "run_evals.py")],
+                                  capture_output=True, text=True, cwd=str(ROOT))
+            st.code((proc.stdout or proc.stderr)[-1500:], language="text")
+            s.update(label="Evaluation complete", state="complete")
+        st.rerun()
+
+    if not RESULTS_PATH.exists():
+        st.info("No results yet. Click **Run evaluation now**, or run "
+                "`python evals/run_evals.py` in a terminal.")
     else:
-        st.info("No results yet — run `python evals/run_evals.py` first.")
+        r = json.loads(RESULTS_PATH.read_text())
+
+        e1, e2, e3, e4 = st.columns(4)
+        e1.metric("Detection F1", f"{r['finding_f1']:.0%}",
+                  help="Harmonic mean of precision and recall on missing-info findings")
+        e2.metric("Routing accuracy",
+                  f"{int(r['routing_accuracy'] * r['cases'])}/{r['cases']}")
+        rubric = r.get("letter_rubric_pass_rate")
+        e3.metric("Letter rubric",
+                  f"{r.get('letters_passed', 0)}/{r.get('letters_checked', 0)}"
+                  if rubric is not None else "n/a",
+                  help="Every finding covered · nothing invented · case ID present")
+        calls = r.get("llm_calls", {})
+        total = calls.get("llm", 0) + calls.get("fallback", 0)
+        e4.metric("AI call integrity",
+                  f"{calls.get('llm', 0)}/{total}" if total else "offline run",
+                  help="How many calls the model actually served. Below 100% means "
+                       "offline fallbacks diluted this run.")
+
+        p1, p2 = st.columns(2)
+        p1.metric("Precision", f"{r['finding_precision']:.0%}",
+                  help="Of the problems flagged, how many were real")
+        p2.metric("Recall", f"{r['finding_recall']:.0%}",
+                  help="Of the real problems, how many were caught")
+
+        st.caption(f"Mode: **{r['mode']}** · {r['cases']} cases · golden labels are read "
+                   "only by the scorer, never by the pipeline")
+
+        if r.get("failures"):
+            st.error("Failures:\n\n" + "\n".join(r["failures"]))
+        else:
+            st.success(f"All {r['cases']} cases matched the golden set.")
+
+        if r.get("per_case"):
+            st.markdown("**Case-by-case results**")
+            rows = [{
+                "": "✅" if (c["findings_match"] and c["route_match"]) else "❌",
+                "case": c["case_id"],
+                "scenario": c["scenario"],
+                "in": c["channel"],
+                "expected findings": ", ".join(c["expected_findings"]) or "—",
+                "detected": ", ".join(c["detected_findings"]) or "—",
+                "route": c["actual_route"],
+                "letter": c["letter_source"] or "",
+            } for c in r["per_case"]]
+            st.dataframe(rows, use_container_width=True, height=430, hide_index=True)

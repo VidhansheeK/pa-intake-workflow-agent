@@ -28,6 +28,7 @@ def main() -> None:
     route_hits = 0
     letters_checked = letters_passed = 0
     failures = []
+    per_case = []
 
     for case_id, label in sorted(labels.items()):
         if "fax" in label:  # fax cases exercise the extraction layer end-to-end
@@ -50,6 +51,19 @@ def main() -> None:
             letters_checked += 1
             problems = followups._verify(result["followup"], packet, result["findings"])
             letters_passed += not problems
+
+        per_case.append({
+            "case_id": case_id,
+            "scenario": label["scenario"],
+            "channel": "fax" if "fax" in label else "portal",
+            "expected_findings": sorted(expected),
+            "detected_findings": sorted(predicted),
+            "findings_match": predicted == expected,
+            "expected_route": label["expected_route"],
+            "actual_route": result["route"]["queue"],
+            "route_match": route_ok,
+            "letter_source": (result["followup"] or {}).get("source"),
+        })
 
         if predicted != expected or not route_ok:
             failures.append(
@@ -85,7 +99,10 @@ def main() -> None:
         "finding_precision": precision, "finding_recall": recall, "finding_f1": f1,
         "routing_accuracy": route_hits / n,
         "letter_rubric_pass_rate": (letters_passed / letters_checked) if letters_checked else None,
+        "letters_checked": letters_checked,
+        "letters_passed": letters_passed,
         "failures": failures,
+        "per_case": per_case,
     }, indent=2))
     print("\nWritten to evals/results.json")
     sys.exit(1 if failures else 0)
