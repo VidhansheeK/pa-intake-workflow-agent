@@ -41,8 +41,7 @@ Prompts are written defensively, because the failure mode we care about is
 **Letter drafting** (`src/followups.py`), the constraint is scope:
 
 > "You draft professional follow-up letters to healthcare providers about incomplete
-> prior-authorization requests. Ask only for what the listed findings require ,
-> never invent additional requirements. Be specific, courteous, and concise."
+> prior-authorization requests. Ask only for what the listed findings require, never invent additional requirements. Be specific, courteous, and concise."
 
 On a rubric failure the model is re-prompted with the specific problems appended,
 e.g. `"Your previous draft failed review: findings not addressed by any question:
