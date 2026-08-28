@@ -94,11 +94,16 @@ pending = [c for c in case_ids if c not in decisions]
 
 # ---------- tab 1: review queue ----------
 with tab_queue:
+    # bumping this key resets the uploader widget, clearing the file and the
+    # status messages so the panel returns to its compact state
+    round_no = st.session_state.get("upload_round", 0)
+
     with st.expander("📤 **Upload a new request** (fax .txt or packet .json)", expanded=False):
         st.caption("Drop a document here and watch it move through the pipeline into "
                    "the queue. Sample files live in `data/faxes/`.")
         uploaded = st.file_uploader("Choose a file", type=["txt", "json"],
-                                    label_visibility="collapsed")
+                                    label_visibility="collapsed",
+                                    key=f"uploader_{round_no}")
 
         if uploaded is not None:
             fingerprint = f"{uploaded.name}:{uploaded.size}"
@@ -142,10 +147,14 @@ with tab_queue:
                                         f"→ {result['route']['queue']}", state="complete")
 
                 st.session_state.processed_upload = fingerprint
-                st.success(f"**{packet['case_id']}** added to the queue below. "
-                           "Select it to review.")
-                if st.button("↻ Refresh queue", type="primary"):
-                    st.rerun()
+                st.session_state.last_case = packet["case_id"]
+
+            st.success(f"**{st.session_state.get('last_case', '')}** is in the queue. "
+                       "Refresh to see it and clear this panel.")
+            if st.button("↻ Refresh queue", type="primary"):
+                st.session_state.upload_round = round_no + 1  # resets the uploader
+                st.session_state.pop("processed_upload", None)
+                st.rerun()
 
     left, right = st.columns([1, 2.6])
 
