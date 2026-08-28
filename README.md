@@ -30,50 +30,113 @@ instead of overspending.
 - **Runs with zero API keys** — offline mode uses deterministic fallbacks for the
   LLM steps, so any reviewer can execute the full pipeline, tests, and evals.
 
-## Quick start
+## How to run this (start here)
+
+**Requirements:** Python 3.10 or newer. Nothing else — **no API key, no database,
+no Docker, no internet connection needed.**
+
+### Step 1 — Get the code and install (about 1 minute)
 
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
+git clone https://github.com/VidhansheeK/pa-intake-workflow-agent.git
+cd pa-intake-workflow-agent
+
+python3 -m venv .venv                 # create an isolated environment
+source .venv/bin/activate             # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-
-# regenerate the synthetic dataset (26 packets, 13 scenarios, golden labels)
-python data/generate_packets.py
-
-# process one case from the CLI
-python -m src.pipeline PA-2026-0012            # incomplete: missing member ID
-python -m src.pipeline PA-2026-0001            # complete: routes to clinical review
-python -m src.pipeline PA-2026-0027            # duplicate request detection
-python -m src.pipeline --fax data/faxes/FAX-0002.txt   # unstructured fax entry
-python -m src.pipeline PA-2026-0012 --approve  # with interactive approval gate
-
-# run the review console (queue + dashboard + cost + audit + evals tabs)
-streamlit run app/review_app.py
-
-# event-driven intake: run the watcher, then drop a file into the inbox
-python -m src.watcher                          # in a second terminal
-cp data/faxes/FAX-0001.txt data/inbox/         # appears in the review queue
-
-# run evals against the golden labels
-python evals/run_evals.py
-
-# run tests
-pytest tests/
 ```
 
-### LLM mode (optional)
+### Step 2 — Verify it works (about 30 seconds)
 
-Two providers are supported behind the same interface. Put your key in a `.env`
-file at the project root (gitignored — see `.env.example`):
+```bash
+pytest tests/            # expect: 26 passed
+python evals/run_evals.py   # expect: 100% detection, 29/29 routing, 16/16 rubric
+```
+
+If both pass, everything is working. You are in **offline mode**, where the two
+AI steps use deterministic fallbacks — this is intentional, so the whole project
+is reviewable without any API key.
+
+### Step 3 — See the pipeline handle single cases
+
+```bash
+python -m src.pipeline PA-2026-0001    # complete packet -> routed to clinical review
+python -m src.pipeline PA-2026-0012    # missing member ID -> follow-up letter drafted
+python -m src.pipeline PA-2026-0018    # clinical notes missing the required TB screening
+python -m src.pipeline PA-2026-0027    # duplicate of an earlier request -> duplicate queue
+python -m src.pipeline --fax data/faxes/FAX-0002.txt   # starts from an unstructured fax
+```
+
+Each prints the findings, the proposed route with its reason, and the drafted
+letter. Nothing is finalized — these are proposals awaiting human approval.
+
+### Step 4 — Open the review console (the human approval gate)
+
+```bash
+streamlit run app/review_app.py
+```
+
+Opens at http://localhost:8501 with four tabs:
+
+| Tab | What to look at |
+|---|---|
+| **Review Queue** | Pick a case. The stepper shows its path through the pipeline; each finding is badged ⚙️ RULE or 🤖 AI; edit the letter (a diff appears) and Approve or Reject |
+| **Dashboard** | Queue counts, cases per route, and the LLM cost meter vs its budget cap |
+| **Audit Trail** | Append-only log of every proposal and every human decision |
+| **Evals** | Metrics from the most recent `run_evals.py` run |
+
+### Step 5 — Optional: event-driven intake
+
+In a **second terminal** (leave the app running in the first):
+
+```bash
+source .venv/bin/activate
+python -m src.watcher                  # watches data/inbox/
+```
+
+Then in a third terminal — or any file manager — drop a document in:
+
+```bash
+cp data/faxes/FAX-0001.txt data/inbox/
+```
+
+The watcher extracts it, runs the pipeline, and it appears in the review queue.
+Press Ctrl-C to stop the watcher.
+
+### Step 6 — Optional: turn on real AI
+
+Everything above runs without AI. To enable the two LLM steps (clinical-notes
+judgment and letter drafting), add **one** key to a `.env` file:
 
 ```bash
 cp .env.example .env
-# edit .env and paste ONE key:
-#   GEMINI_API_KEY=AIza...     FREE tier key from https://aistudio.google.com/apikey
-#   ANTHROPIC_API_KEY=sk-...   paid alternative (default model claude-opus-5)
-
-python -m src.pipeline PA-2026-0018   # clinical-notes check + letter drafting via LLM
-python evals/run_evals.py             # score LLM mode against the golden set
 ```
+
+Then edit `.env` and paste one line:
+
+```
+GEMINI_API_KEY=AIza...        # free key from https://aistudio.google.com/apikey
+```
+or
+```
+ANTHROPIC_API_KEY=sk-ant-...  # paid alternative
+```
+
+Re-run any command above — the output header changes from `mode: offline` to
+`mode: gemini`, and letters show `source: llm`. Spend is metered per call and
+hard-capped by `PA_BUDGET_USD` (default $1); at the cap the agent degrades back
+to offline rules rather than overspending.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| `command not found: python` | Use `python3` (macOS/Linux ship Python 3 under that name) |
+| `ModuleNotFoundError` | The virtualenv isn't active — re-run `source .venv/bin/activate` |
+| `streamlit: command not found` | Same cause: activate the venv, or run `python -m streamlit run app/review_app.py` |
+| Port 8501 already in use | `streamlit run app/review_app.py --server.port 8502` |
+| Want to reset the demo state | `rm -rf data/proposals data/decisions.json audit_log.jsonl` |
+| Want to regenerate the dataset | `python data/generate_packets.py` (seeded — reproduces the same 27 packets + 2 faxes) |
 
 If both keys are set, Anthropic wins. Without any key (or with
 `PA_MODE=offline`) every LLM step degrades gracefully to its deterministic
