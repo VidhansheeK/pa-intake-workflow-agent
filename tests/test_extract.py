@@ -42,3 +42,22 @@ def test_missing_field_becomes_none_not_guess(monkeypatch):
     fax = "\n".join(l for l in FAX.splitlines() if not l.startswith("Diagnosis"))
     packet = extract.extract_from_text(fax)
     assert packet["request"]["diagnosis_icd10"] is None
+
+
+def test_gemini_schema_conversion_is_api_compatible():
+    """Gemini rejects JSON-Schema unions and additionalProperties with HTTP 400."""
+    from src import llm
+    converted = llm._to_gemini_schema(extract.EXTRACT_SCHEMA)
+    assert "additionalProperties" not in converted
+    case_id = converted["properties"]["case_id"]
+    assert case_id == {"type": "string", "nullable": True}, case_id
+
+    def no_union_types(node):
+        if isinstance(node, dict):
+            assert not isinstance(node.get("type"), list), f"union type left in: {node}"
+            for v in node.values():
+                no_union_types(v)
+        elif isinstance(node, list):
+            for v in node:
+                no_union_types(v)
+    no_union_types(converted)

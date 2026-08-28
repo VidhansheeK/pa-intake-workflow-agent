@@ -48,16 +48,20 @@ def ingest(path: Path) -> str:
 
 def main() -> None:
     INBOX.mkdir(exist_ok=True)
-    print(f"Watching {INBOX} — drop .json packets or .txt faxes there. Ctrl-C to stop.")
-    while True:
-        for path in sorted(INBOX.glob("*")):
-            if path.suffix in (".json", ".txt"):
-                try:
-                    print(f"[watcher] {path.name} arrived -> {ingest(path)}")
-                except Exception as e:
-                    print(f"[watcher] FAILED on {path.name}: {type(e).__name__}: {e}")
-                    shutil.move(str(path), PROCESSED / f"FAILED-{path.name}")
-        time.sleep(2)
+    print(f"Watching {INBOX} for .json packets and .txt faxes. Ctrl-C to stop.")
+    try:
+        while True:
+            for path in sorted(INBOX.glob("*")):
+                if path.suffix in (".json", ".txt"):
+                    try:
+                        print(f"[watcher] {path.name} arrived -> {ingest(path)}")
+                    except Exception as e:
+                        print(f"[watcher] FAILED on {path.name}: {type(e).__name__}: {e}")
+                        PROCESSED.mkdir(exist_ok=True)
+                        shutil.move(str(path), PROCESSED / f"FAILED-{path.name}")
+            time.sleep(2)
+    except KeyboardInterrupt:
+        print("\n[watcher] stopped.")  # clean exit, no traceback on camera
 
 
 if __name__ == "__main__":

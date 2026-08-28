@@ -126,14 +126,30 @@ def _anthropic_json(system: str, prompt: str, schema: dict) -> dict | None:
     return json.loads(text)
 
 
-def _strip_additional_properties(schema):
-    """Gemini's responseSchema rejects 'additionalProperties'; drop it recursively."""
-    if isinstance(schema, dict):
-        return {k: _strip_additional_properties(v)
-                for k, v in schema.items() if k != "additionalProperties"}
+def _to_gemini_schema(schema):
+    """Convert a JSON Schema to Gemini's responseSchema dialect.
+
+    Two incompatibilities, both of which return HTTP 400:
+      - 'additionalProperties' is not a field it knows      -> drop it
+      - union types like ["string", "null"] are not allowed -> "string" + nullable
+    """
     if isinstance(schema, list):
-        return [_strip_additional_properties(v) for v in schema]
-    return schema
+        return [_to_gemini_schema(v) for v in schema]
+    if not isinstance(schema, dict):
+        return schema
+
+    out = {}
+    for key, value in schema.items():
+        if key == "additionalProperties":
+            continue
+        if key == "type" and isinstance(value, list):
+            non_null = [t for t in value if t != "null"]
+            out["type"] = non_null[0] if non_null else "string"
+            if "null" in value:
+                out["nullable"] = True
+            continue
+        out[key] = _to_gemini_schema(value)
+    return out
 
 
 def _gemini_json(system: str, prompt: str, schema: dict) -> dict | None:
@@ -146,7 +162,7 @@ def _gemini_json(system: str, prompt: str, schema: dict) -> dict | None:
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
         "generationConfig": {
             "responseMimeType": "application/json",
-            "responseSchema": _strip_additional_properties(schema),
+            "responseSchema": _to_gemini_schema(schema),
         },
     }
     request = urllib.request.Request(
