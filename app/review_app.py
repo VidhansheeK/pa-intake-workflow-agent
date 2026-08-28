@@ -10,6 +10,7 @@ Optionally alongside:  python -m src.watcher   (event-driven intake)
 import difflib
 import json
 import sys
+import time
 from collections import Counter
 from pathlib import Path
 
@@ -18,7 +19,7 @@ import streamlit as st
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
-from src import llm, pipeline  # noqa: E402
+from src import audit, extract, llm, pipeline  # noqa: E402
 
 DECISIONS_PATH = ROOT / "data" / "decisions.json"
 LEDGER_PATH = ROOT / "data" / "cost_ledger.jsonl"
@@ -93,6 +94,59 @@ pending = [c for c in case_ids if c not in decisions]
 
 # ---------- tab 1: review queue ----------
 with tab_queue:
+    with st.expander("📤 **Upload a new request** (fax .txt or packet .json)", expanded=False):
+        st.caption("Drop a document here and watch it move through the pipeline into "
+                   "the queue. Sample files live in `data/faxes/`.")
+        uploaded = st.file_uploader("Choose a file", type=["txt", "json"],
+                                    label_visibility="collapsed")
+
+        if uploaded is not None:
+            fingerprint = f"{uploaded.name}:{uploaded.size}"
+            if st.session_state.get("processed_upload") != fingerprint:
+                with st.status(f"Processing **{uploaded.name}**…", expanded=True) as status:
+                    raw = uploaded.getvalue().decode("utf-8", errors="replace")
+
+                    st.write(f"📥 **Received** · {uploaded.name} ({uploaded.size:,} bytes)")
+                    time.sleep(0.35)
+
+                    if uploaded.name.lower().endswith(".txt"):
+                        st.write("📠 **Extracting fields from the document…**")
+                        packet = extract.extract_from_text(raw)
+                        st.write(f"✅ **Extracted** · via {packet['extraction_source']} · "
+                                 f"case {packet['case_id']}")
+                    else:
+                        packet = json.loads(raw)
+                        packet.setdefault("channel", "portal")
+                        st.write(f"📄 **Structured packet read** · case {packet['case_id']}")
+                    time.sleep(0.35)
+
+                    # register it so it joins the queue and duplicate detection sees it
+                    (ROOT / "data" / "packets" / f"{packet['case_id']}.json").write_text(
+                        json.dumps(packet, indent=2))
+                    audit.log(packet["case_id"], "ingested", actor="review_app_upload",
+                              details={"file": uploaded.name,
+                                       "extraction": packet.get("extraction_source")})
+
+                    icons = {"Completeness checks": "🔍", "Duplicate check": "👯",
+                             "Routing": "🧭", "Follow-up letter drafted": "✉️"}
+
+                    def show(label, detail):
+                        st.write(f"{icons.get(label, '•')} **{label}** · {detail}")
+                        time.sleep(0.35)
+
+                    result = pipeline.process(packet, on_step=show)
+                    pipeline.store_proposal(result)
+
+                    st.write("🧑‍⚖️ **Queued for human review**")
+                    status.update(label=f"✅ {packet['case_id']} is in the queue "
+                                        f"→ {result['route']['queue']}", state="complete")
+
+                st.session_state.processed_upload = fingerprint
+                st.success(f"**{packet['case_id']}** added to the queue below. "
+                           "Select it to review.")
+                if st.button("↻ Refresh queue", type="primary"):
+                    st.rerun()
+
     left, right = st.columns([1, 2.6])
 
     with left:

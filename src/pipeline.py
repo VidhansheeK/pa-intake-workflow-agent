@@ -24,14 +24,30 @@ def load_packet(case_id: str) -> dict:
     return json.loads((PACKETS_DIR / f"{case_id}.json").read_text())
 
 
-def process(packet: dict, policies: dict | None = None, members: dict | None = None) -> dict:
-    """Run the pipeline for one packet. Returns the full proposal (pending approval)."""
+def process(packet: dict, policies: dict | None = None, members: dict | None = None,
+            on_step=None) -> dict:
+    """Run the pipeline for one packet. Returns the full proposal (pending approval).
+
+    on_step(label, detail) is called as each stage completes, so a UI can show
+    real progress rather than a fake spinner.
+    """
+    def step(label: str, detail: str = "") -> None:
+        if on_step:
+            on_step(label, detail)
+
     policies = policies if policies is not None else completeness.load_policies()
     members = members if members is not None else completeness.load_members()
 
     findings = completeness.check(packet, policies, members)
-    findings += duplicates.check(packet)
+    step("Completeness checks", f"{len(findings)} issue(s) found"
+         if findings else "all required fields present")
+
+    dupes = duplicates.check(packet)
+    findings += dupes
+    step("Duplicate check", dupes[0]["detail"] if dupes else "no recent duplicate")
+
     decision = router.route(packet, findings, policies)
+    step("Routing", decision["queue"])
     result = {
         "case_id": packet["case_id"],
         "mode": llm.provider(),
@@ -45,6 +61,8 @@ def process(packet: dict, policies: dict | None = None, members: dict | None = N
     }
     if decision["queue"] == "provider_outreach":
         result["followup"] = followups.draft(packet, findings)
+        step("Follow-up letter drafted",
+             f"source: {result['followup']['source']}, rubric passed")
 
     audit.log(packet["case_id"], "pipeline_proposal", actor=f"pipeline({llm.provider()})",
               details={"findings": [f["code"] for f in findings], "route": decision["queue"]})

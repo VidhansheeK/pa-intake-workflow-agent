@@ -155,7 +155,8 @@ A keyword search can't reliably catch that. The AI reads the notes like a person
 | ✉️ **Writes the follow-up** | One letter covering everything missing, so one round-trip instead of three |
 | 🧭 **Routes the case** | 6 queues: no-auth-needed, duplicate review, eligibility team, provider outreach, expedited clinical, standard clinical |
 | 🧑‍⚖️ **Requires a human** | Nothing is ever sent automatically. A named reviewer approves, edits, or rejects |
-| ⚡ **Reacts to arrivals** | Drop a file in a folder and it flows through the pipeline into the review queue by itself |
+| 📤 **Upload from the console** | Drag a fax or packet into the app and watch each stage run live: extracted, checked, routed, queued |
+| ⚡ **Reacts to arrivals** | Or drop a file in a watched folder and it flows through by itself, no human touch |
 | 💰 **Can't overspend** | Every AI call is metered; a hard budget and a loop breaker degrade it to offline rules instead of burning money |
 | 🔌 **Runs without AI** | No API key? Deterministic fallbacks take over and the whole thing still works, end to end |
 | 🧾 **Logs everything** | Append-only trail of every proposal and every human decision |
