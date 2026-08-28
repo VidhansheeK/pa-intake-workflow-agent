@@ -2,7 +2,7 @@
 
 # 🏥 Prior Authorization Intake Workflow Agent
 
-**Catches missing information the moment a request arrives, so doctors aren't chased three times for three different things.**
+**Catches missing information the moment a request arrives, so providers aren't chased three times for three different things.**
 
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-26_passing-2ea44f)
@@ -55,9 +55,9 @@ streamlit run app/review_app.py        # 🧑‍⚖️ open the review console
 
 ## What problem does this solve?
 
-Before an insurer pays for an expensive procedure, the doctor has to ask permission first. That request is called a **prior authorization**, and someone at the insurer has to check it by hand: *is everything here that we need?*
+Before an insurer pays for an expensive procedure, the provider has to request approval first. That request is called a **prior authorization**, and someone at the insurer has to check it by hand: *is everything here that we need?*
 
-Very often, something is missing: a member ID, a diagnosis code, or a required test buried in the clinical notes. So the insurer writes back to the doctor. Days pass. The reply arrives, still incomplete. They write back again.
+Very often, something is missing: a member ID, a diagnosis code, or a required test buried in the clinical notes. So the insurer writes back to the provider. Days pass. The reply arrives, still incomplete. They write back again.
 
 **Every one of those round-trips costs days**, burns the regulatory clock the insurer is legally held to, and often ends in a denial that gets overturned on appeal anyway, meaning everyone did the work twice.
 
@@ -128,7 +128,7 @@ flowchart TD
 | Handled by **plain code** ⚙️ | Handled by **AI** 🤖 |
 |---|---|
 | Is the member ID present and in our eligibility list? | Do these clinical notes actually satisfy the policy? |
-| Is the doctor's NPI mathematically valid? *(real checksum)* | Write the follow-up letter to the doctor |
+| Is the provider's NPI mathematically valid? *(real checksum)* | Write the follow-up letter to the provider |
 | Is the diagnosis code a real ICD-10 format? | *(that's it, only these two)* |
 | Is this a duplicate of a recent request? | |
 | **Which queue does this case go to?** | |
@@ -137,7 +137,7 @@ flowchart TD
 
 ### 🎯 The example that shows the value
 
-A doctor requests **adalimumab**, an expensive biologic drug. The policy requires three things: a confirmed diagnosis, proof that methotrexate was tried first, and a **negative TB screening**, because this drug can reactivate dormant tuberculosis.
+A provider requests **adalimumab**, an expensive biologic drug. The policy requires three things: a confirmed diagnosis, proof that methotrexate was tried first, and a **negative TB screening**, because this drug can reactivate dormant tuberculosis.
 
 The notes document the diagnosis ✅ and the methotrexate ✅ … and never mention TB screening ❌.
 
@@ -151,7 +151,7 @@ A keyword search can't reliably catch that. The AI reads the notes like a person
 |---|---|
 | 📠 **Reads faxes** | Turns unstructured fax text into clean structured fields. Anything it can't find becomes empty. It never guesses |
 | 🔍 **Finds what's missing** | 12 kinds of problem: identity, eligibility, invalid NPI, bad codes, unjustified urgency, insufficient clinical notes |
-| 👯 **Spots duplicates** | Same member + same procedure within 14 days → its own review queue, so nobody chases a doctor about a case that already exists |
+| 👯 **Spots duplicates** | Same member + same procedure within 14 days → its own review queue, so nobody chases a provider about a case that already exists |
 | ✉️ **Writes the follow-up** | One letter covering everything missing, so one round-trip instead of three |
 | 🧭 **Routes the case** | 6 queues: no-auth-needed, duplicate review, eligibility team, provider outreach, expedited clinical, standard clinical |
 | 🧑‍⚖️ **Requires a human** | Nothing is ever sent automatically. A named reviewer approves, edits, or rejects |

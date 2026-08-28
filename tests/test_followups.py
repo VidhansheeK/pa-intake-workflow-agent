@@ -38,7 +38,7 @@ def test_verify_catches_invented_finding_and_missing_case_id():
     bad = {"questions": [{"finding_code": "member_id_missing", "question": "ID?"},
                          {"finding_code": "clinical_notes_insufficient", "question": "Notes?"},
                          {"finding_code": "made_up_requirement", "question": "Extra?"}],
-           "letter": "Dear Doctor, send more stuff."}
+           "letter": "Dear Provider, send more stuff."}
     problems = followups._verify(bad, PACKET, FINDINGS)
     assert any("do not exist" in p for p in problems)
     assert any("case ID" in p for p in problems)
