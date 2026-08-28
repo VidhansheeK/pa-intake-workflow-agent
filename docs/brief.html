@@ -169,15 +169,23 @@ logic, and budget guard.</p>
 <tr><td>Data classification</td><td>Synthetic only, zero PHI anywhere in the
 repo</td><td>Intake packets are PHI/HIPAA: BAA with the model provider,
 zero-retention API terms, encryption in transit and at rest</td></tr>
-<tr><td>Access</td><td>Local run; keys in gitignored <code>.env</code>; runs with
-no keys at all</td><td>SSO + RBAC (intake-coordinator role); secrets manager;
-intake-queue ingestion (the watcher's polling stands in for a message-bus
-subscription)</td></tr>
+<tr><td>Access control</td><td>Local run; keys in gitignored <code>.env</code>;
+runs with no keys at all</td><td><b>SSO + RBAC, least privilege across four roles</b>
+— intake coordinator (approve/edit only), clinical reviewer (own specialty queue),
+platform engineer (deploy, no approval rights: separation of duty), compliance
+(read-only). Approvals record the authenticated identity, so they are attributable.
+Secrets in a manager, injected at runtime, never logged. The agent holds
+<b>no write access to any system of record</b>; its only outputs are a proposal and,
+post-approval, a letter dispatched by the outreach service</td></tr>
 <tr><td>Audit &amp; logging</td><td>Append-only JSONL of every proposal and human
 decision</td><td>Ship to the enterprise log store with immutable retention</td></tr>
 <tr><td>AI controls</td><td>Schema-constrained outputs · code-rubric verification ·
-human gate before any external effect · deterministic routing</td>
-<td>Same controls; add periodic sampled QA of approved letters</td></tr>
+human gate before any external effect · deterministic routing. <b>Containment:</b> the
+model can only emit extracted fields, unmet-requirement IDs, or letter text — it
+cannot alter a route, approve a case, or send anything, so an injected instruction
+in clinical notes has no reachable effect</td>
+<td>Same controls; add periodic sampled QA of approved letters and explicit
+prompt-injection testing</td></tr>
 <tr><td>Cost controls</td><td>Every call metered (tokens + list-price cost) to a
 ledger; hard budget (<code>PA_BUDGET_USD</code>) + runaway-loop call cap degrade
 the agent to offline rules — a stuck loop cannot overspend</td>

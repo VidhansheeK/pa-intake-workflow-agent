@@ -113,13 +113,14 @@ gate has external effect.
 ## 4. Data
 
 Self-generated synthetic dataset (`data/generate_packets.py`, fixed seed):
-26 packets across 13 scenarios — complete standard/expedited, missing member
-ID, member not eligible, invalid NPI (wrong length *and* bad check digit),
-missing/malformed diagnosis, clinical notes missing a required element (three
-different CPT policies), expedited without justification, no-auth-required
-CPT, missing DOB, empty notes, and a multi-issue case. Ground-truth labels are
-emitted **by construction** into `data/golden_labels.json`, which only the eval
-runner reads — the pipeline cannot cheat.
+27 packets and 2 fax documents across 15 scenarios: complete standard/expedited,
+missing member ID, member not eligible, invalid NPI (wrong length *and* bad
+check digit), missing/malformed diagnosis, clinical notes missing a required
+element (three different CPT policies), expedited without justification,
+no-auth-required CPT, missing DOB, empty notes, a multi-issue case, a duplicate
+request, and fax-channel intake (complete and incomplete). Ground-truth labels
+are emitted **by construction** into `data/golden_labels.json`, which only the
+eval runner reads, so the pipeline cannot cheat.
 
 ## 5. Evaluation
 
@@ -148,26 +149,101 @@ the same harness measures it, and known failure modes are listed below.
 
 ## 6. Enterprise readiness
 
-- **Data classification (assumed for production):** intake packets are PHI
-  (HIPAA). This prototype is synthetic-only; production would require a BAA
-  with the model provider, no-training/zero-retention API terms, and
-  encryption in transit and at rest.
-- **Access:** production inputs come from the intake queue (portal/fax OCR);
-  reviewer access via SSO + RBAC (intake-coordinator role); API keys in a
-  secrets manager, never in the repo (offline mode means the repo carries none).
-- **Audit/logging:** append-only JSONL of every proposal and human decision
-  with timestamp + actor — the shape a compliance team needs to reconstruct
-  any case. Production: ship to the enterprise log store, immutable retention.
-- **Controls:** LLM output is schema-constrained, rubric-verified, and
-  human-approved before any external effect; routing is deterministic and
-  explainable line-by-line.
-- **Cost controls:** every LLM call is metered (tokens + list-price cost) to
-  an append-only ledger; a hard budget (`PA_BUDGET_USD`) and a runaway-loop
-  call cap (`PA_MAX_LLM_CALLS`) degrade the agent to offline rules instead of
-  letting it overspend. The dashboard shows spend vs budget live.
-- **Handoff owner:** the PA intake operations team (product owner) with the
-  platform team owning the pipeline service; `BUILD_LOG.md` + this doc are the
-  handoff package.
+### 6.1 Data classification
+
+| | Prototype (this repo) | Production |
+|---|---|---|
+| Classification | **Synthetic. No PHI.** Every name, member ID, NPI and note is fabricated by `data/generate_packets.py` | **PHI under HIPAA.** Intake packets carry member identity, diagnosis, and clinical narrative |
+| Model provider terms | None needed | **BAA required**, plus no-training and zero/short-retention terms before any real packet is sent |
+| Encryption | n/a | TLS in transit; encryption at rest for packets, proposals, and the audit store |
+| Minimisation | n/a | Send the model only the notes and the policy requirements. Member identifiers are **not** needed for the clinical-notes judgment and should be stripped before the call |
+
+The prototype cannot leak PHI because it has none, and it carries no credentials:
+`.env` is gitignored and offline mode means the repository runs with no key at all.
+
+### 6.2 Access control
+
+**Roles (least privilege).** The system has four distinct actors, and they should
+not share permissions:
+
+| Role | Can | Cannot |
+|---|---|---|
+| **Intake coordinator** | View queued cases, edit drafted letters, approve/reject | Change policies, edit the audit log, view other queues' cases |
+| **Clinical reviewer** | Receive routed cases in their specialty queue | Approve intake proposals, alter routing rules |
+| **Platform engineer** | Deploy, read logs and metrics, rotate credentials | Approve cases (separation of duty) |
+| **Compliance/audit** | Read the full audit trail and cost ledger | Modify anything |
+
+**Authentication and authorisation.** Reviewers authenticate through enterprise
+**SSO**; role assignment via **RBAC** groups, not per-user grants. Every approval
+records the authenticated identity, so approvals are attributable and
+non-repudiable. The prototype's free-text "Reviewer name" field is a stand-in for
+the SSO identity and is explicitly not an authentication mechanism.
+
+**Segregation.** The queue is scoped by role, so a coordinator sees only cases
+awaiting intake approval. Specialty queues are separately scoped, since routing
+already carries the specialty.
+
+**Secrets.** Model API keys live in a secrets manager and are injected at runtime,
+never committed and never written into prompts or logs. Key rotation requires no
+code change (`.env` / environment variables only). The audit log and cost ledger
+record *that* a call happened and its token count, never the credential.
+
+**Service-to-service.** In production the pipeline consumes from the intake queue
+and reads eligibility and policy through service accounts with read-only scopes.
+The agent has **no write access to any system of record** — its only outputs are a
+proposal and, after human approval, a letter dispatched by the outreach service.
+
+### 6.3 Audit and logging
+
+- **What is captured:** every proposal (case, findings, route, model provider) and
+  every human decision (approve / reject / letter-edited), each with actor and
+  UTC timestamp, appended to `audit_log.jsonl`. Every model call is separately
+  metered to `data/cost_ledger.jsonl` (model, tokens, estimated cost).
+- **Append-only by construction** — the writer only ever appends; nothing in the
+  codebase updates or deletes an entry.
+- **Production:** ship to the enterprise log store with immutable, WORM-style
+  retention matched to the HIPAA retention schedule; alert on anomalies such as a
+  spike in rejections or a sustained fallback-to-offline rate.
+- **Reconstructability:** any case can be replayed from the log — what was found,
+  what was proposed, who decided, and when.
+
+### 6.4 Security and compliance controls
+
+- **AI containment:** the model can only produce (a) extracted field values, (b) a
+  set of unmet policy requirement IDs, and (c) letter text. It cannot change a
+  route, approve a case, write to a system of record, or send anything.
+- **Schema-constrained outputs** on every call, so responses are validated
+  structurally before use; unknown requirement IDs are discarded in code.
+- **Rubric verification in code** before a human sees a drafted letter, with one
+  retry and a safe template fallback.
+- **Human approval gate** as the sole path to external effect.
+- **Deterministic, explainable routing** — an auditor can read the rule that
+  routed any case.
+- **Graceful degradation:** API failure, safety refusal, or budget exhaustion
+  falls back to deterministic rules rather than blocking intake.
+- **Prompt-injection posture:** clinical notes are attacker-influenceable text in
+  principle. Containment is structural (the model's output space is limited to the
+  three items above), so an injected instruction cannot reach routing or dispatch.
+  Explicit injection testing is named as future work rather than claimed.
+- **Cost controls:** per-call metering with a hard budget (`PA_BUDGET_USD`) and a
+  runaway-loop call cap (`PA_MAX_LLM_CALLS`); at either limit the agent degrades to
+  offline rules. Live spend against budget is visible on the dashboard.
+
+### 6.5 Handoff
+
+- **Product owner:** PA intake operations (owns the policy catalogue, the routing
+  rules, and reviewer workflow).
+- **Service owner:** platform engineering (owns deployment, the model integration,
+  budgets, and alerting).
+- **Compliance partner:** privacy office signs off on the BAA, retention, and the
+  minimisation rule in 6.1 before first production packet.
+- **Handoff package:** this document, `AI_USAGE.md` (AI evidence), `BUILD_LOG.md`
+  (every decision and failure recorded as it happened), the eval harness as the
+  regression gate, and the README run guide.
+- **Day-one runbook for the receiving team:** run `pytest` and
+  `python evals/run_evals.py` before any change ships; treat a drop in AI call
+  integrity as a provider incident; review the cost ledger weekly; and re-run the
+  evals whenever a prompt or policy is edited.
 
 ## 7. Limitations, scaling, cost, next iteration
 
