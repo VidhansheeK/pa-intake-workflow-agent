@@ -42,14 +42,16 @@ an eligibility service.
 ## 2. Requirements
 
 ### Functional
-- FR1: Ingest a structured intake packet (JSON) per case.
+- FR1: Ingest a case as a structured packet (JSON) or an unstructured fax
+  document (extraction layer), by CLI, upload, or watched folder.
 - FR2: Detect missing/invalid information: member identity + eligibility,
   provider NPI (real Luhn checksum), CPT/ICD-10 presence and format, expedited
   justification, and CPT-specific clinical documentation requirements.
 - FR3: Draft provider follow-up questions covering **exactly** the findings —
   one consolidated letter, no invented requirements.
-- FR4: Route each case: no-auth-required, eligibility review (internal),
-  provider outreach, or (expedited) clinical review by specialty.
+- FR4: Route each case to one of six queues: no-auth-required, duplicate
+  review, eligibility review (internal), provider outreach, or (expedited)
+  clinical review by specialty.
 - FR5: **Human approval gate**: no letter is sent and no route is final until a
   named reviewer approves (or edits, or rejects) in the review app or CLI.
 - FR6: Audit log: every proposal and every human decision appended to JSONL
@@ -65,44 +67,75 @@ an eligibility service.
 
 ## 3. Architecture
 
-```
-                       ┌────────────────────────────────────────────┐
-                       │            src/pipeline.py                 │
- data/packets/*.json ─▶│ 1 completeness.check()    (rules + LLM)    │
- data/policies.json  ─▶│ 2 followups.draft()       (LLM + verify    │
- data/members.json   ─▶│                            loop, or        │
-                       │                            templates)      │
-                       │ 3 router.route()          (decision table) │
-                       └────────────────┬───────────────────────────┘
-                                        │ proposal (never final)
-                                        ▼
-                       ┌────────────────────────────────────────────┐
-                       │  HUMAN APPROVAL — app/review_app.py        │
-                       │  approve / edit letter / reject            │
-                       └────────────────┬───────────────────────────┘
-                                        ▼
-                              audit_log.jsonl (append-only)
+```mermaid
+flowchart TD
+    subgraph INTAKE ["📥 INTAKE"]
+        direction LR
+        FAX["📠 Fax<br/><i>unstructured text</i>"]
+        JSON["📄 Portal packet<br/><i>structured JSON</i>"]
+        INBOX["📂 data/inbox/<br/><i>watched folder</i>"]
+    end
+
+    EXTRACT["<b>Extraction</b><br/>fax text ➜ structured fields<br/><i>AI reads it · regex fallback</i>"]
+
+    subgraph PIPE ["⚙️ THE PIPELINE: proposes, never decides"]
+        direction TB
+        CHECK["<b>1 · Completeness check</b><br/>member · NPI checksum · codes · eligibility<br/><i>+ AI reads clinical notes vs policy</i>"]
+        DUP["<b>2 · Duplicate check</b><br/>same member + procedure in 14 days"]
+        LETTER["<b>3 · Follow-up letter</b><br/>AI drafts ➜ rubric grades it in code<br/>➜ 1 retry ➜ safe template"]
+        ROUTE["<b>4 · Routing</b><br/>6 queues · plain rules · no AI"]
+        CHECK --> DUP --> LETTER --> ROUTE
+    end
+
+    GATE{{"🧑‍⚖️ <b>HUMAN APPROVAL GATE</b><br/>approve · edit the letter · reject<br/><i>the only path to any real-world action</i>"}}
+
+    AUDIT[("🧾 <b>Audit log</b><br/>append-only · who did what, when")]
+    GUARD["💰 <b>Cost guard</b><br/>meters every AI call<br/>hard budget + loop breaker"]
+
+    FAX --> EXTRACT
+    INBOX --> EXTRACT
+    EXTRACT --> CHECK
+    JSON --> CHECK
+    ROUTE --> GATE
+    GATE --> AUDIT
+    PIPE -.every proposal logged.-> AUDIT
+    GUARD -.caps AI spend.-> PIPE
+
+    classDef intake fill:#eef4ff,stroke:#4b7bec,stroke-width:1px,color:#12325c
+    classDef pipeline fill:#ffffff,stroke:#475569,stroke-width:1.5px,color:#1f2937
+    classDef gate fill:#e7f6ec,stroke:#1a7f4b,stroke-width:3px,color:#0f5132
+    classDef store fill:#f6f8fb,stroke:#64748b,stroke-width:1px,color:#334155
+    classDef guard fill:#fdf4e5,stroke:#b45309,stroke-width:1.5px,color:#7c3f06
+    classDef ai fill:#fdf4e5,stroke:#b45309,stroke-width:1.5px,color:#7c3f06
+
+    class FAX,JSON,INBOX intake
+    class CHECK,DUP,LETTER,ROUTE pipeline
+    class GATE gate
+    class AUDIT store
+    class GUARD,EXTRACT guard
 ```
 
-**Where the LLM is and is not.** The LLM (Claude, `claude-opus-5`, via the
-`anthropic` SDK with structured outputs) is used for exactly two things:
-1. Judging whether free-text clinical notes satisfy the CPT's policy
+**Where the LLM is and is not.** The model (Claude or Gemini, via structured
+outputs) is used for exactly three things:
+1. Reading a fax document into structured fields (`extract.extract_from_text`).
+2. Judging whether free-text clinical notes satisfy the CPT's policy
    requirements (`completeness.check_clinical_notes`).
-2. Drafting the provider follow-up letter (`followups.draft`).
+3. Drafting the provider follow-up letter (`followups.draft`).
 
 Everything else — field checks, NPI checksum, code formats, eligibility lookup,
-routing — is deterministic Python. This is deliberate: routing decisions must
+duplicate detection, routing — is deterministic Python. This is deliberate: routing decisions must
 be explainable to a regulator, and rules are the cheapest correct tool for
-structured fields. The offline fallback for (1) is a keyword heuristic and for
-(2) a template letter, so the pipeline always completes.
+structured fields. Each has a deterministic fallback — a regex parser, a keyword heuristic, and a
+template letter respectively — so the pipeline always completes, with or without
+a model.
 
 **Verification loop (loop-engineering Loop 2).** Every LLM-drafted letter is
 graded by a deterministic rubric in code — every finding covered, no invented
 requirements, case ID present. A failed draft gets one retry with the specific
 problems as feedback; a second failure falls back to the verified-safe
-template. The human gate then reviews whatever survives. Loops 3–4 of the
-loop-engineering stack (event-driven triggers, hill-climbing on production
-traces) are future work — see §7.
+template. The human gate then reviews whatever survives. Loop 3 (event-driven triggers)
+is built — `src/watcher.py` processes arrivals in a watched folder. Loop 4
+(hill-climbing on production traces) is future work — see §7.
 
 **Human-in-the-loop placement.** One gate, at the highest-leverage point: after
 the proposal, before any outbound action. The reviewer sees findings, route,

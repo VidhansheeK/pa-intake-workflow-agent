@@ -146,9 +146,9 @@ console (queue · dashboard · audit · evals), and per-call cost metering.
 <p><b>The core design judgment — deterministic wherever a rule can decide; LLM only
 where language understanding is required.</b> Field presence, NPI Luhn checksum,
 ICD-10/CPT format, eligibility lookup, duplicate detection, and all routing are
-plain auditable rules. The model does exactly two things: judging whether
-free-text clinical notes satisfy the procedure's policy requirements, and drafting
-the provider letter. Every model output is schema-constrained, verified by a
+plain auditable rules. The model does exactly three things: reading a fax
+document into structured fields, judging whether free-text clinical notes satisfy
+the procedure's policy requirements, and drafting the provider letter. Every model output is schema-constrained, verified by a
 code rubric (with one feedback retry, then a safe template fallback), and
 human-approved before any external effect. On any API failure, safety refusal, or
 budget breach the system degrades to fully offline deterministic mode — the

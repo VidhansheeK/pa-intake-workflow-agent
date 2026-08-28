@@ -1,0 +1,27 @@
+{
+  "case_id": "PA-2026-0028",
+  "received_at": "2026-08-20T17:21:00",
+  "channel": "fax",
+  "member": {
+    "member_id": "M100079190",
+    "name": "Rohan Verma",
+    "dob": "1974-02-18",
+    "plan": "UHC Navigate"
+  },
+  "provider": {
+    "npi": "3433200375",
+    "name": "Dr. B. Kulkarni",
+    "specialty": null,
+    "phone": "+1-555-566-7790"
+  },
+  "request": {
+    "procedure_cpt": "70553",
+    "procedure_description": "MRI brain with and without contrast",
+    "diagnosis_icd10": "R51.9",
+    "diagnosis_description": "Headache, unspecified",
+    "urgency": "standard",
+    "expedited_justification": null
+  },
+  "clinical_notes": "Patient presents with recurrent symptoms. Persistent headache with intermittent vision change and left arm numbness. Symptoms persisting for 6 weeks; prior CT unremarkable, further workup indicated.",
+  "extraction_source": "llm"
+}
