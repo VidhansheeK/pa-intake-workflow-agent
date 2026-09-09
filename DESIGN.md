@@ -146,7 +146,7 @@ gate has external effect.
 ## 4. Data
 
 Self-generated synthetic dataset (`data/generate_packets.py`, fixed seed):
-27 packets and 2 fax documents across 15 scenarios: complete standard/expedited,
+27 packets and 2 fax documents across 18 scenarios: complete standard/expedited,
 missing member ID, member not eligible, invalid NPI (wrong length *and* bad
 check digit), missing/malformed diagnosis, clinical notes missing a required
 element (three different CPT policies), expedited without justification,

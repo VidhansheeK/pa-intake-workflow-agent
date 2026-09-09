@@ -77,7 +77,7 @@ would be loaded from the policy system of record; per-request retrieval only
 becomes justified if the policy text stops fitting in context.
 
 **Synthetic data, generated not sourced** (`data/generate_packets.py`, fixed seed):
-27 packets and 2 fax documents across 15 scenarios. Because the generator *creates*
+27 packets and 2 fax documents across 18 scenarios. Because the generator *creates*
 each defect, it also emits the ground truth. `data/golden_labels.json` is read
 **only** by the eval runner, so the pipeline cannot see its own answer key.
 No production data and no PHI at any point.
@@ -88,7 +88,7 @@ No production data and no PHI at any point.
 
 `evals/run_evals.py` replays every case through the real pipeline.
 
-**Scenarios covered (15):** complete standard · complete expedited · missing member
+**Scenarios covered (18 distinct labels, 15 generator blocks):** complete standard · complete expedited · missing member
 ID · member not in eligibility · invalid NPI (wrong length) · invalid NPI (bad
 checksum) · missing diagnosis · malformed ICD-10 · notes missing a required element
 (three different policies) · expedited without justification · procedure needing no
