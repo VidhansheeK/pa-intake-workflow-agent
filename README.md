@@ -245,7 +245,7 @@ pip install -r requirements.txt
 ### Step 2 · Verify *(~30 sec)*
 
 ```bash
-pytest tests/                # expect: 26 passed
+pytest tests/                # expect: 27 passed
 python evals/run_evals.py    # expect: 100% detection · 29/29 routing · 16/16 rubric
 ```
 
